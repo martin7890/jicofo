@@ -31,398 +31,354 @@ import org.jivesoftware.smackx.packet.*;
  * @author Pawel Domas
  * @author Boris Grozev
  */
-public class MeetExtensionsHandler
-    implements PacketFilter,
-               PacketListener
-{
-    /**
-     * The logger
-     */
-    private final static Logger logger
-        = Logger.getLogger(MeetExtensionsHandler.class);
+public class MeetExtensionsHandler implements PacketFilter, PacketListener {
+	/**
+	 * The logger
+	 */
+	private final static Logger logger = Logger
+			.getLogger(MeetExtensionsHandler.class);
 
-    /**
-     * Parent conference.
-     */
-    private final JitsiMeetConference conference;
+	/**
+	 * Parent conference.
+	 */
+	private final JitsiMeetConference conference;
 
-    /**
-     * Operation set that provider XMPP connection.
-     */
-    private OperationSetDirectSmackXmpp smackXmpp;
+	/**
+	 * Operation set that provider XMPP connection.
+	 */
+	private OperationSetDirectSmackXmpp smackXmpp;
 
-    /**
-     * Creates new instance of {@link MeetExtensionsHandler}.
-     * @param conference parent conference for which newly created instance
-     *                   will be listening for service extensions packets.
-     */
-    public MeetExtensionsHandler(JitsiMeetConference conference)
-    {
-        this.conference = conference;
+	/**
+	 * Creates new instance of {@link MeetExtensionsHandler}.
+	 * 
+	 * @param conference
+	 *            parent conference for which newly created instance will be
+	 *            listening for service extensions packets.
+	 */
+	public MeetExtensionsHandler(JitsiMeetConference conference) {
+		this.conference = conference;
 
-        MuteIqProvider muteIqProvider = new MuteIqProvider();
-        muteIqProvider.registerMuteIqProvider(
-            ProviderManager.getInstance());
+		MuteIqProvider muteIqProvider = new MuteIqProvider();
+		muteIqProvider.registerMuteIqProvider(ProviderManager.getInstance());
 
-        RayoIqProvider rayoIqProvider = new RayoIqProvider();
-        rayoIqProvider.registerRayoIQs(
-                ProviderManager.getInstance());
-    }
+		RayoIqProvider rayoIqProvider = new RayoIqProvider();
+		rayoIqProvider.registerRayoIQs(ProviderManager.getInstance());
 
-    /**
-     * Initializes this instance and bind packet listeners.
-     */
-    public void init()
-    {
-        this.smackXmpp
-            = conference.getXmppProvider().getOperationSet(
-                    OperationSetDirectSmackXmpp.class);
+		PrivateIQProvider privateIQProvider = new PrivateIQProvider();
+		privateIQProvider.registerPrivateIQProvider(ProviderManager
+				.getInstance());
+	}
 
-        smackXmpp.addPacketHandler(this, this);
-    }
+	/**
+	 * Initializes this instance and bind packet listeners.
+	 */
+	public void init() {
+		this.smackXmpp = conference.getXmppProvider().getOperationSet(
+				OperationSetDirectSmackXmpp.class);
 
-    /**
-     * Disposes this instance and stop listening for extensions packets.
-     */
-    public void dispose()
-    {
-        if (smackXmpp != null)
-        {
-            smackXmpp.removePacketHandler(this);
-            smackXmpp = null;
-        }
-    }
+		smackXmpp.addPacketHandler(this, this);
+	}
 
-    @Override
-    public boolean accept(Packet packet)
-    {
-        return acceptMuteIq(packet)
-                || acceptColibriIQ(packet)
-                || acceptRayoIq(packet)
-                || acceptMessage(packet)
-                || acceptPresence(packet);
-    }
+	/**
+	 * Disposes this instance and stop listening for extensions packets.
+	 */
+	public void dispose() {
+		if (smackXmpp != null) {
+			smackXmpp.removePacketHandler(this);
+			smackXmpp = null;
+		}
+	}
 
-    @Override
-    public void processPacket(Packet packet)
-    {
-        if (smackXmpp == null)
-        {
-            logger.error("Not initialized");
-            return;
-        }
+	@Override
+	public boolean accept(Packet packet) {
+		return acceptMuteIq(packet) || acceptColibriIQ(packet)
+				|| acceptRayoIq(packet) || acceptMessage(packet)
+				|| acceptPresence(packet) || acceptPrivateIQ(packet);
+	}
 
-        if (packet instanceof ColibriConferenceIQ)
-        {
-            handleColibriIq((ColibriConferenceIQ) packet);
-        }
-        else if (packet instanceof MuteIq)
-        {
-            handleMuteIq((MuteIq) packet);
-        }
-        else if (packet instanceof RayoIqProvider.DialIq)
-        {
-            handleRayoIQ((RayoIqProvider.DialIq) packet);
-        }
-        else if (packet instanceof Message)
-        {
-            handleMessage((Message) packet);
-        }
-        else if (packet instanceof Presence)
-        {
-            handlePresence((Presence) packet);
-        }
-        else
-        {
-            logger.error("Unexpected packet: " + packet.toXML());
-        }
-    }
+	@Override
+	public void processPacket(Packet packet) {
+		if (smackXmpp == null) {
+			logger.error("Not initialized");
+			return;
+		}
 
-    private boolean acceptColibriIQ(Packet packet)
-    {
-        String bridgeJid = conference.getServices().getVideobridge();
-        return packet instanceof ColibriConferenceIQ
-            // We're interested in packets from outside the world and not the JVB
-            && (bridgeJid == null || !bridgeJid.equals(packet.getFrom()))
-            // And with recording element
-            && ((ColibriConferenceIQ)packet).getRecording() != null;
-    }
+		if (packet instanceof ColibriConferenceIQ) {
+			handleColibriIq((ColibriConferenceIQ) packet);
+		} else if (packet instanceof MuteIq) {
+			handleMuteIq((MuteIq) packet);
+		} else if (packet instanceof RayoIqProvider.DialIq) {
+			handleRayoIQ((RayoIqProvider.DialIq) packet);
+		} else if (packet instanceof Message) {
+			handleMessage((Message) packet);
+		} else if (packet instanceof Presence) {
+			handlePresence((Presence) packet);
+		} else if (packet instanceof PrivateIQ) {
+			handlePrivateIQ((PrivateIQ) packet);
+		} else {
+			logger.error("Unexpected packet: " + packet.toXML());
+		}
+	}
 
-    private void handleColibriIq(ColibriConferenceIQ colibriIQ)
-    {
-        ColibriConferenceIQ.Recording recording = colibriIQ.getRecording();
+	private boolean acceptPrivateIQ(Packet packet) {
+		return packet instanceof PrivateIQ;
+	}
 
-        boolean recordingState =
-            conference.modifyRecordingState(
-                colibriIQ.getFrom(),
-                recording.getToken(),
-                recording.getState(),
-                recording.getDirectory());
+	private void handlePrivateIQ(PrivateIQ privateIQ) {
+		PrivateIQ response = new PrivateIQ();
 
-        ColibriConferenceIQ response = new ColibriConferenceIQ();
+		response.setType(IQ.Type.RESULT);
+		response.setPacketID(privateIQ.getPacketID());
+		response.setTo(privateIQ.getFrom());
+		response.setFrom(privateIQ.getTo());
 
-        response.setType(IQ.Type.RESULT);
-        response.setPacketID(colibriIQ.getPacketID());
-        response.setTo(colibriIQ.getFrom());
-        response.setFrom(colibriIQ.getTo());
+		smackXmpp.getXmppConnection().sendPacket(response);
+	}
 
-        response.setRecording(
-            new ColibriConferenceIQ.Recording(recordingState));
+	private boolean acceptColibriIQ(Packet packet) {
+		String bridgeJid = conference.getServices().getVideobridge();
+		return packet instanceof ColibriConferenceIQ
+		// We're interested in packets from outside the world and not the JVB
+				&& (bridgeJid == null || !bridgeJid.equals(packet.getFrom()))
+				// And with recording element
+				&& ((ColibriConferenceIQ) packet).getRecording() != null;
+	}
 
-        smackXmpp.getXmppConnection().sendPacket(response);
-    }
+	private void handleColibriIq(ColibriConferenceIQ colibriIQ) {
+		ColibriConferenceIQ.Recording recording = colibriIQ.getRecording();
 
-    private boolean acceptMuteIq(Packet packet)
-    {
-        return packet instanceof MuteIq;
-    }
+		boolean recordingState = conference.modifyRecordingState(
+				colibriIQ.getFrom(), recording.getToken(),
+				recording.getState(), recording.getDirectory());
 
-    private void handleMuteIq(MuteIq muteIq)
-    {
-        Boolean doMute = muteIq.getMute();
-        String jid = muteIq.getJid();
+		ColibriConferenceIQ response = new ColibriConferenceIQ();
 
-        if (doMute == null || StringUtils.isNullOrEmpty(jid))
-            return;
+		response.setType(IQ.Type.RESULT);
+		response.setPacketID(colibriIQ.getPacketID());
+		response.setTo(colibriIQ.getFrom());
+		response.setFrom(colibriIQ.getTo());
 
-        IQ result;
+		response.setRecording(new ColibriConferenceIQ.Recording(recordingState));
 
-        if (conference.handleMuteRequest(muteIq.getFrom(), jid, doMute))
-        {
-            result = IQ.createResultIQ(muteIq);
+		smackXmpp.getXmppConnection().sendPacket(response);
+	}
 
-            if (!muteIq.getFrom().equals(jid))
-            {
-                MuteIq muteStatusUpdate = new MuteIq();
-                muteStatusUpdate.setType(IQ.Type.SET);
-                muteStatusUpdate.setTo(jid);
+	private boolean acceptMuteIq(Packet packet) {
+		return packet instanceof MuteIq;
+	}
 
-                muteStatusUpdate.setMute(doMute);
+	private void handleMuteIq(MuteIq muteIq) {
+		Boolean doMute = muteIq.getMute();
+		String jid = muteIq.getJid();
 
-                smackXmpp.getXmppConnection().sendPacket(muteStatusUpdate);
-            }
-        }
-        else
-        {
-            result = IQ.createErrorResponse(
-                muteIq,
-                new XMPPError(XMPPError.Condition.interna_server_error));
-        }
+		if (doMute == null || StringUtils.isNullOrEmpty(jid))
+			return;
 
-        smackXmpp.getXmppConnection().sendPacket(result);
-    }
+		IQ result;
 
-    private boolean acceptRayoIq(Packet p)
-    {
-        return p instanceof RayoIqProvider.DialIq;
-    }
+		if (conference.handleMuteRequest(muteIq.getFrom(), jid, doMute)) {
+			result = IQ.createResultIQ(muteIq);
 
-    private void handleRayoIQ(RayoIqProvider.DialIq dialIq)
-    {
-        String initiatorJid = dialIq.getFrom();
+			if (!muteIq.getFrom().equals(jid)) {
+				MuteIq muteStatusUpdate = new MuteIq();
+				muteStatusUpdate.setType(IQ.Type.SET);
+				muteStatusUpdate.setTo(jid);
 
-        ChatRoomMemberRole role = conference.getRoleForMucJid(initiatorJid);
+				muteStatusUpdate.setMute(doMute);
 
-        if (role == null)
-        {
-            // Only room members are allowed to send requests
-            IQ error = createErrorResponse(
-                dialIq, new XMPPError(XMPPError.Condition.forbidden));
+				smackXmpp.getXmppConnection().sendPacket(muteStatusUpdate);
+			}
+		} else {
+			result = IQ.createErrorResponse(muteIq, new XMPPError(
+					XMPPError.Condition.interna_server_error));
+		}
 
-            smackXmpp.getXmppConnection().sendPacket(error);
+		smackXmpp.getXmppConnection().sendPacket(result);
+	}
 
-            return;
-        }
+	private boolean acceptRayoIq(Packet p) {
+		return p instanceof RayoIqProvider.DialIq;
+	}
 
-        if (ChatRoomMemberRole.MODERATOR.compareTo(role) < 0)
-        {
-            // Moderator permission is required
-            IQ error = createErrorResponse(
-                dialIq, new XMPPError(XMPPError.Condition.not_allowed));
+	private void handleRayoIQ(RayoIqProvider.DialIq dialIq) {
+		String initiatorJid = dialIq.getFrom();
 
-            smackXmpp.getXmppConnection().sendPacket(error);
+		ChatRoomMemberRole role = conference.getRoleForMucJid(initiatorJid);
 
-            return;
-        }
+		if (role == null) {
+			// Only room members are allowed to send requests
+			IQ error = createErrorResponse(dialIq, new XMPPError(
+					XMPPError.Condition.forbidden));
 
-        // Check if Jigasi is available
-        String jigasiJid = conference.getServices().getSipGateway();
+			smackXmpp.getXmppConnection().sendPacket(error);
 
-        if (StringUtils.isNullOrEmpty(jigasiJid))
-        {
-            // Not available
-            IQ error = createErrorResponse(
-                dialIq, new XMPPError(XMPPError.Condition.service_unavailable));
+			return;
+		}
 
-            smackXmpp.getXmppConnection().sendPacket(error);
+		if (ChatRoomMemberRole.MODERATOR.compareTo(role) < 0) {
+			// Moderator permission is required
+			IQ error = createErrorResponse(dialIq, new XMPPError(
+					XMPPError.Condition.not_allowed));
 
-            return;
-        }
+			smackXmpp.getXmppConnection().sendPacket(error);
 
-        // Redirect original request to Jigasi component
-        String originalPacketId = dialIq.getPacketID();
+			return;
+		}
 
-        dialIq.setFrom(null);
-        dialIq.setTo(jigasiJid);
-        dialIq.setPacketID(IQ.nextID());
+		// Check if Jigasi is available
+		String jigasiJid = conference.getServices().getSipGateway();
 
-        IQ reply
-            = (IQ) smackXmpp.getXmppConnection().sendPacketAndGetReply(dialIq);
+		if (StringUtils.isNullOrEmpty(jigasiJid)) {
+			// Not available
+			IQ error = createErrorResponse(dialIq, new XMPPError(
+					XMPPError.Condition.service_unavailable));
 
-        // Send Jigasi response back to the client
-        reply.setFrom(null);
-        reply.setTo(initiatorJid);
-        reply.setPacketID(originalPacketId);
+			smackXmpp.getXmppConnection().sendPacket(error);
 
-        smackXmpp.getXmppConnection().sendPacket(reply);
-    }
+			return;
+		}
 
-    private boolean acceptMessage(Packet packet)
-    {
-        if (packet != null && packet instanceof Message)
-        {
-            for (PacketExtension pe : packet.getExtensions())
-                if (pe instanceof LogPacketExtension)
-                    return true;
-        }
-        return false;
-    }
+		// Redirect original request to Jigasi component
+		String originalPacketId = dialIq.getPacketID();
 
-    /**
-     * Handles "message" stanzas.
-     */
-    private void handleMessage(Message message)
-    {
-        for (PacketExtension ext : message.getExtensions())
-            if (ext instanceof LogPacketExtension)
-                handleLogRequest((LogPacketExtension) ext, message.getFrom());
-    }
+		dialIq.setFrom(null);
+		dialIq.setTo(jigasiJid);
+		dialIq.setPacketID(IQ.nextID());
 
-    /**
-     * Handles XEP-0337 "log" extensions.
-     */
-    private void handleLogRequest(LogPacketExtension log, String jid)
-    {
-        Participant participant = conference.findParticipantForRoomJid(jid);
-        if (participant != null)
-        {
-            EventAdmin eventAdmin = FocusBundleActivator.getEventAdmin();
-            if (eventAdmin != null)
-            {
-                if (LogUtil.LOG_ID_PC_STATS.equals(log.getID()))
-                {
-                    String content = LogUtil.getContent(log);
-                    if (content != null)
-                    {
-                        Event event =
-                            EventFactory.peerConnectionStats(
-                                conference.getColibriConference().getConferenceId(),
-                                // TODO: find a better way to get the endpoint ID
-                                participant.getChatMember().getName(),
-                                content);
-                        if (event != null)
-                            eventAdmin.sendEvent(event);
-                    }
-                }
-                else
-                {
-                    if (logger.isInfoEnabled())
-                        logger.info("Ignoring log request with an unknown ID:"
-                                            + log.getID());
-                }
-            }
-        }
-        else
-        {
-            logger.info("Ignoring log request from an unknown JID: " + jid);
-        }
-    }
+		IQ reply = (IQ) smackXmpp.getXmppConnection().sendPacketAndGetReply(
+				dialIq);
 
-    private boolean acceptPresence(Packet packet)
-    {
-        return packet instanceof Presence;
-    }
+		// Send Jigasi response back to the client
+		reply.setFrom(null);
+		reply.setTo(initiatorJid);
+		reply.setPacketID(originalPacketId);
 
-    /**
-     * Handles presence stanzas
-     * @param presence
-     */
-    private void handlePresence(Presence presence)
-    {
-        // unavailable is sent when user leaves the room
-        if (!presence.isAvailable())
-        {
-            return;
-        }
+		smackXmpp.getXmppConnection().sendPacket(reply);
+	}
 
-        Participant participant
-                = conference.findParticipantForRoomJid(presence.getFrom());
-        if (participant != null)
-        {
-            // Check for changes to the display name
-            String oldDisplayName = participant.getDisplayName();
-            String newDisplayName = null;
-            for (PacketExtension pe : presence.getExtensions())
-            {
-                if (pe instanceof Nick)
-                {
-                    newDisplayName = ((Nick) pe).getName();
-                    break;
-                }
-            }
+	private boolean acceptMessage(Packet packet) {
+		if (packet != null && packet instanceof Message) {
+			for (PacketExtension pe : packet.getExtensions())
+				if (pe instanceof LogPacketExtension)
+					return true;
+		}
+		return false;
+	}
 
-            if ((oldDisplayName == null && newDisplayName != null)
-                || (oldDisplayName != null
-                        && !oldDisplayName.equals(newDisplayName)))
-            {
-                participant.setDisplayName(newDisplayName);
+	/**
+	 * Handles "message" stanzas.
+	 */
+	private void handleMessage(Message message) {
+		for (PacketExtension ext : message.getExtensions())
+			if (ext instanceof LogPacketExtension)
+				handleLogRequest((LogPacketExtension) ext, message.getFrom());
+	}
 
-                // Prevent NPE when adding to event hashtable
-                if (newDisplayName == null)
-                {
-                    newDisplayName = "";
-                }
-                EventAdmin eventAdmin = FocusBundleActivator.getEventAdmin();
-                if (eventAdmin != null)
-                {
-                    eventAdmin.sendEvent(
-                        EventFactory.endpointDisplayNameChanged(
-                            conference.getColibriConference().getConferenceId(),
-                            // TODO: find a better way to get the endpoint ID
-                            participant.getChatMember().getName(),
-                            newDisplayName));
-                }
-            }
-        }
+	/**
+	 * Handles XEP-0337 "log" extensions.
+	 */
+	private void handleLogRequest(LogPacketExtension log, String jid) {
+		Participant participant = conference.findParticipantForRoomJid(jid);
+		if (participant != null) {
+			EventAdmin eventAdmin = FocusBundleActivator.getEventAdmin();
+			if (eventAdmin != null) {
+				if (LogUtil.LOG_ID_PC_STATS.equals(log.getID())) {
+					String content = LogUtil.getContent(log);
+					if (content != null) {
+						Event event = EventFactory.peerConnectionStats(
+								conference.getColibriConference()
+										.getConferenceId(),
+								// TODO: find a better way to get the endpoint
+								// ID
+								participant.getChatMember().getName(), content);
+						if (event != null)
+							eventAdmin.sendEvent(event);
+					}
+				} else {
+					if (logger.isInfoEnabled())
+						logger.info("Ignoring log request with an unknown ID:"
+								+ log.getID());
+				}
+			}
+		} else {
+			logger.info("Ignoring log request from an unknown JID: " + jid);
+		}
+	}
 
-    }
+	private boolean acceptPresence(Packet packet) {
+		return packet instanceof Presence;
+	}
 
-    /**
-     * FIXME: replace with IQ.createErrorResponse
-     * Prosody does not allow to include request body in error
-     * response. Replace this method with IQ.createErrorResponse once fixed.
-     */
-    private IQ createErrorResponse(IQ request, XMPPError error)
-    {
-        if (!(request.getType() == IQ.Type.GET
-                || request.getType() == IQ.Type.SET))
-        {
-            throw new IllegalArgumentException(
-                "IQ must be of type 'set' or 'get'. Original IQ: "
-                        + request.toXML());
-        }
-        final IQ result = new IQ()
-        {
-            public String getChildElementXML()
-            {
-                return "";
-            }
-        };
-        result.setType(IQ.Type.ERROR);
-        result.setPacketID(request.getPacketID());
-        result.setFrom(request.getTo());
-        result.setTo(request.getFrom());
-        result.setError(error);
-        return result;
-    }
+	/**
+	 * Handles presence stanzas
+	 * 
+	 * @param presence
+	 */
+	private void handlePresence(Presence presence) {
+		// unavailable is sent when user leaves the room
+		if (!presence.isAvailable()) {
+			return;
+		}
+
+		Participant participant = conference.findParticipantForRoomJid(presence
+				.getFrom());
+		if (participant != null) {
+			// Check for changes to the display name
+			String oldDisplayName = participant.getDisplayName();
+			String newDisplayName = null;
+			for (PacketExtension pe : presence.getExtensions()) {
+				if (pe instanceof Nick) {
+					newDisplayName = ((Nick) pe).getName();
+					break;
+				}
+			}
+
+			if ((oldDisplayName == null && newDisplayName != null)
+					|| (oldDisplayName != null && !oldDisplayName
+							.equals(newDisplayName))) {
+				participant.setDisplayName(newDisplayName);
+
+				// Prevent NPE when adding to event hashtable
+				if (newDisplayName == null) {
+					newDisplayName = "";
+				}
+				EventAdmin eventAdmin = FocusBundleActivator.getEventAdmin();
+				if (eventAdmin != null) {
+					eventAdmin.sendEvent(EventFactory
+							.endpointDisplayNameChanged(
+									conference.getColibriConference()
+											.getConferenceId(),
+									// TODO: find a better way to get the
+									// endpoint ID
+									participant.getChatMember().getName(),
+									newDisplayName));
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * FIXME: replace with IQ.createErrorResponse Prosody does not allow to
+	 * include request body in error response. Replace this method with
+	 * IQ.createErrorResponse once fixed.
+	 */
+	private IQ createErrorResponse(IQ request, XMPPError error) {
+		if (!(request.getType() == IQ.Type.GET || request.getType() == IQ.Type.SET)) {
+			throw new IllegalArgumentException(
+					"IQ must be of type 'set' or 'get'. Original IQ: "
+							+ request.toXML());
+		}
+		final IQ result = new IQ() {
+			public String getChildElementXML() {
+				return "";
+			}
+		};
+		result.setType(IQ.Type.ERROR);
+		result.setPacketID(request.getPacketID());
+		result.setFrom(request.getTo());
+		result.setTo(request.getFrom());
+		result.setError(error);
+		return result;
+	}
 }

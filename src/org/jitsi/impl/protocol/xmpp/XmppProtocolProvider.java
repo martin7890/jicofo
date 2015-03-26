@@ -318,7 +318,7 @@ public class XmppProtocolProvider
      *
      * @return {@link XmppConnection} provided by this instance.
      */
-    XmppConnection getConnectionAdapter()
+    public XmppConnection getConnectionAdapter()
     {
         if (connectionAdapter == null)
         {

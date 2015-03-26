@@ -21,443 +21,450 @@ import java.util.*;
  *
  * @author Pawel Domas
  */
-public class Participant
-{
-    /**
-     * MUC chat member of this participant.
-     */
-    private final XmppChatMember roomMember;
+public class Participant {
+	/**
+	 * MUC chat member of this participant.
+	 */
+	private final XmppChatMember roomMember;
 
-    /**
-     * Jingle session(if any) established with this peer.
-     */
-    private JingleSession jingleSession;
+	/**
+	 * Jingle session(if any) established with this peer.
+	 */
+	private JingleSession jingleSession;
 
-    /**
-     * Information about Colibri channels allocated for this peer(if any).
-     */
-    private ColibriConferenceIQ colibriChannelsInfo;
+	/**
+	 * Information about Colibri channels allocated for this peer(if any).
+	 */
+	private ColibriConferenceIQ colibriChannelsInfo;
 
-    /**
-     * Peer's media SSRCs.
-     */
-    private MediaSSRCMap ssrcs = new MediaSSRCMap();
+	/**
+	 * Peer's media SSRCs.
+	 */
+	private MediaSSRCMap ssrcs = new MediaSSRCMap();
 
-    /**
-     * Peer's media SSRC groups.
-     */
-    private MediaSSRCGroupMap ssrcGroups = new MediaSSRCGroupMap();
+	/**
+	 * Peer's media SSRC groups.
+	 */
+	private MediaSSRCGroupMap ssrcGroups = new MediaSSRCGroupMap();
 
-    /**
-     * SSRCs received from other peers scheduled for later addition, because
-     * of the Jingle session not being ready at the point when SSRCs appeared in
-     * the conference.
-     */
-    private MediaSSRCMap ssrcsToAdd = new MediaSSRCMap();
+	/**
+	 * SSRCs received from other peers scheduled for later addition, because of
+	 * the Jingle session not being ready at the point when SSRCs appeared in
+	 * the conference.
+	 */
+	private MediaSSRCMap ssrcsToAdd = new MediaSSRCMap();
 
-    /**
-     * SSRC groups received from other peers scheduled for later addition.
-     * @see #ssrcsToAdd
-     */
-    private MediaSSRCGroupMap ssrcGroupsToAdd = new MediaSSRCGroupMap();
+	/**
+	 * SSRC groups received from other peers scheduled for later addition.
+	 * 
+	 * @see #ssrcsToAdd
+	 */
+	private MediaSSRCGroupMap ssrcGroupsToAdd = new MediaSSRCGroupMap();
 
-    /**
-     * SSRCs received from other peers scheduled for later removal, because
-     * of the Jingle session not being ready at the point when SSRCs appeared in
-     * the conference.
-     * FIXME: do we need that since these were never added ? - check
-     */
-    private MediaSSRCMap ssrcsToRemove = new MediaSSRCMap();
+	/**
+	 * SSRCs received from other peers scheduled for later removal, because of
+	 * the Jingle session not being ready at the point when SSRCs appeared in
+	 * the conference. FIXME: do we need that since these were never added ? -
+	 * check
+	 */
+	private MediaSSRCMap ssrcsToRemove = new MediaSSRCMap();
 
-    /**
-     * SSRC groups received from other peers scheduled for later removal.
-     * @see #ssrcsToRemove
-     */
-    private MediaSSRCGroupMap ssrcGroupsToRemove = new MediaSSRCGroupMap();
+	/**
+	 * SSRC groups received from other peers scheduled for later removal.
+	 * 
+	 * @see #ssrcsToRemove
+	 */
+	private MediaSSRCGroupMap ssrcGroupsToRemove = new MediaSSRCGroupMap();
 
-    /**
-     * The list of XMPP features supported by this participant. 
-     */
-    private List<String> supportedFeatures = new ArrayList<String>();
+	/**
+	 * The list of XMPP features supported by this participant.
+	 */
+	private List<String> supportedFeatures = new ArrayList<String>();
 
-    /**
-     * Remembers participant's muted status.
-     */
-    private boolean mutedStatus;
+	/**
+	 * Remembers participant's muted status.
+	 */
+	private boolean mutedStatus;
 
-    /**
+	/**
      *
      */
-    private String displayName = null;
+	private String displayName = null;
 
-    /**
-     * Creates new {@link Participant} for given chat room member.
-     *
-     * @param roomMember the {@link XmppChatMember} that represent this
-     *                   participant in MUC conference room.
-     */
-    public Participant(XmppChatMember roomMember)
-    {
-        if (roomMember == null)
-        {
-            throw new NullPointerException("roomMember");
-        }
-        this.roomMember = roomMember;
-    }
+	/** The participant jabberid. */
+	private String jabberid;
 
-    /**
-     * Returns {@link JingleSession} established with this conference
-     * participant or <tt>null</tt> if there is no session yet.
-     */
-    public JingleSession getJingleSession()
-    {
-        return jingleSession;
-    }
+	/**
+	 * Creates new {@link Participant} for given chat room member.
+	 *
+	 * @param roomMember
+	 *            the {@link XmppChatMember} that represent this participant in
+	 *            MUC conference room.
+	 */
+	public Participant(XmppChatMember roomMember) {
+		if (roomMember == null) {
+			throw new NullPointerException("roomMember");
+		}
+		this.roomMember = roomMember;
+	}
 
-    /**
-     * Sets {@link JingleSession} established with this peer.
-     * @param jingleSession the new Jingle session to be assigned to this peer.
-     */
-    public void setJingleSession(JingleSession jingleSession)
-    {
-        this.jingleSession = jingleSession;
-    }
+	/**
+	 * Returns {@link JingleSession} established with this conference
+	 * participant or <tt>null</tt> if there is no session yet.
+	 */
+	public JingleSession getJingleSession() {
+		return jingleSession;
+	}
 
-    /**
-     * Returns {@link XmppChatMember} that represents this participant in
-     * conference multi-user chat room.
-     */
-    public XmppChatMember getChatMember()
-    {
-        return roomMember;
-    }
+	/**
+	 * Sets {@link JingleSession} established with this peer.
+	 * 
+	 * @param jingleSession
+	 *            the new Jingle session to be assigned to this peer.
+	 */
+	public void setJingleSession(JingleSession jingleSession) {
+		this.jingleSession = jingleSession;
+	}
 
-    /**
-     * Imports media SSRCs from given list of <tt>ContentPacketExtension</tt>.
-     * @param answer the list that contains peer's media contents.
-     */
-    public void addSSRCsFromContent(List<ContentPacketExtension> answer)
-    {
-        ssrcs.add(MediaSSRCMap.getSSRCsFromContent(answer));
-    }
+	/**
+	 * Returns {@link XmppChatMember} that represents this participant in
+	 * conference multi-user chat room.
+	 */
+	public XmppChatMember getChatMember() {
+		return roomMember;
+	}
 
-    /**
-     * Removes given media SSRCs from this peer state.
-     * @param ssrcMap the SSRC map that contains the SSRCs to be removed.
-     */
-    public void removeSSRCs(MediaSSRCMap ssrcMap)
-    {
-        this.ssrcs.remove(ssrcMap);
-    }
+	/**
+	 * Imports media SSRCs from given list of <tt>ContentPacketExtension</tt>.
+	 * 
+	 * @param answer
+	 *            the list that contains peer's media contents.
+	 */
+	public void addSSRCsFromContent(List<ContentPacketExtension> answer) {
+		ssrcs.add(MediaSSRCMap.getSSRCsFromContent(answer));
+	}
 
-    /**
-     * Returns the {@link MediaSSRCMap} which contains this peer's media SSRCs.
-     */
-    public MediaSSRCMap getSSRCS()
-    {
-        return ssrcs;
-    }
+	/**
+	 * Removes given media SSRCs from this peer state.
+	 * 
+	 * @param ssrcMap
+	 *            the SSRC map that contains the SSRCs to be removed.
+	 */
+	public void removeSSRCs(MediaSSRCMap ssrcMap) {
+		this.ssrcs.remove(ssrcMap);
+	}
 
-    /**
-     * Returns shallow copy of this peer's media SSRC map.
-     */
-    public MediaSSRCMap getSSRCsCopy()
-    {
-        return ssrcs.copyShallow();
-    }
+	/**
+	 * Returns the {@link MediaSSRCMap} which contains this peer's media SSRCs.
+	 */
+	public MediaSSRCMap getSSRCS() {
+		return ssrcs;
+	}
 
-    /**
-     * Returns deep copy of this peer's media SSRC group map.
-     */
-    public MediaSSRCGroupMap getSSRCGroupsCopy()
-    {
-        return ssrcGroups.copy();
-    }
+	/**
+	 * Returns shallow copy of this peer's media SSRC map.
+	 */
+	public MediaSSRCMap getSSRCsCopy() {
+		return ssrcs.copyShallow();
+	}
 
-    /**
-     * Returns <tt>true</tt> if this peer has any not synchronized SSRCs
-     * scheduled for addition.
-     */
-    public boolean hasSsrcsToAdd()
-    {
-        return !ssrcsToAdd.isEmpty() || !ssrcGroupsToAdd.isEmpty();
-    }
+	/**
+	 * Returns deep copy of this peer's media SSRC group map.
+	 */
+	public MediaSSRCGroupMap getSSRCGroupsCopy() {
+		return ssrcGroups.copy();
+	}
 
-    /**
-     * Reset the queue that holds not synchronized SSRCs scheduled for future
-     * addition.
-     */
-    public void clearSsrcsToAdd()
-    {
-        ssrcsToAdd = new MediaSSRCMap();
-        ssrcGroupsToAdd = new MediaSSRCGroupMap();
-    }
+	/**
+	 * Returns <tt>true</tt> if this peer has any not synchronized SSRCs
+	 * scheduled for addition.
+	 */
+	public boolean hasSsrcsToAdd() {
+		return !ssrcsToAdd.isEmpty() || !ssrcGroupsToAdd.isEmpty();
+	}
 
-    /**
-     * Reset the queue that holds not synchronized SSRCs scheduled for future
-     * removal.
-     */
-    public void clearSsrcsToRemove()
-    {
-        ssrcsToRemove = new MediaSSRCMap();
-        ssrcGroupsToRemove = new MediaSSRCGroupMap();
-    }
+	/**
+	 * Reset the queue that holds not synchronized SSRCs scheduled for future
+	 * addition.
+	 */
+	public void clearSsrcsToAdd() {
+		ssrcsToAdd = new MediaSSRCMap();
+		ssrcGroupsToAdd = new MediaSSRCGroupMap();
+	}
 
-    /**
-     * Returns <tt>true</tt> if this peer has any not synchronized SSRCs
-     * scheduled for removal.
-     */
-    public boolean hasSsrcsToRemove()
-    {
-        return !ssrcsToRemove.isEmpty() || !ssrcGroupsToRemove.isEmpty();
-    }
+	/**
+	 * Reset the queue that holds not synchronized SSRCs scheduled for future
+	 * removal.
+	 */
+	public void clearSsrcsToRemove() {
+		ssrcsToRemove = new MediaSSRCMap();
+		ssrcGroupsToRemove = new MediaSSRCGroupMap();
+	}
 
-    /**
-     * Returns <tt>true</tt> if this peer has any not synchronized SSRCs
-     * scheduled for addition.
-     */
-    public MediaSSRCMap getSsrcsToAdd()
-    {
-        return ssrcsToAdd;
-    }
+	/**
+	 * Returns <tt>true</tt> if this peer has any not synchronized SSRCs
+	 * scheduled for removal.
+	 */
+	public boolean hasSsrcsToRemove() {
+		return !ssrcsToRemove.isEmpty() || !ssrcGroupsToRemove.isEmpty();
+	}
 
-    /**
-     * Returns <tt>true</tt> if this peer has any not synchronized SSRCs
-     * scheduled for removal.
-     */
-    public MediaSSRCMap getSsrcsToRemove()
-    {
-        return ssrcsToRemove;
-    }
+	/**
+	 * Returns <tt>true</tt> if this peer has any not synchronized SSRCs
+	 * scheduled for addition.
+	 */
+	public MediaSSRCMap getSsrcsToAdd() {
+		return ssrcsToAdd;
+	}
 
-    /**
-     * Schedules SSRCs received from other peer for future 'source-add' update.
-     *
-     * @param ssrcMap the media SSRC map that contains SSRCs for future updates.
-     */
-    public void scheduleSSRCsToAdd(MediaSSRCMap ssrcMap)
-    {
-        ssrcsToAdd.add(ssrcMap);
-    }
+	/**
+	 * Returns <tt>true</tt> if this peer has any not synchronized SSRCs
+	 * scheduled for removal.
+	 */
+	public MediaSSRCMap getSsrcsToRemove() {
+		return ssrcsToRemove;
+	}
 
-    /**
-     * Schedules SSRCs received from other peer for future 'source-remove'
-     * update.
-     *
-     * @param ssrcMap the media SSRC map that contains SSRCs for future updates.
-     */
-    public void scheduleSSRCsToRemove(MediaSSRCMap ssrcMap)
-    {
-        ssrcsToRemove.add(ssrcMap);
-    }
+	/**
+	 * Schedules SSRCs received from other peer for future 'source-add' update.
+	 *
+	 * @param ssrcMap
+	 *            the media SSRC map that contains SSRCs for future updates.
+	 */
+	public void scheduleSSRCsToAdd(MediaSSRCMap ssrcMap) {
+		ssrcsToAdd.add(ssrcMap);
+	}
 
-    /**
-     * Sets information about Colibri channels allocated for this participant.
-     *
-     * @param colibriChannelsInfo the IQ that holds colibri channels state.
-     */
-    public void setColibriChannelsInfo(ColibriConferenceIQ colibriChannelsInfo)
-    {
-        this.colibriChannelsInfo = colibriChannelsInfo;
-    }
+	/**
+	 * Schedules SSRCs received from other peer for future 'source-remove'
+	 * update.
+	 *
+	 * @param ssrcMap
+	 *            the media SSRC map that contains SSRCs for future updates.
+	 */
+	public void scheduleSSRCsToRemove(MediaSSRCMap ssrcMap) {
+		ssrcsToRemove.add(ssrcMap);
+	}
 
-    /**
-     * Returns {@link ColibriConferenceIQ} that describes Colibri channels
-     * allocated for this participant.
-     */
-    public ColibriConferenceIQ getColibriChannelsInfo()
-    {
-        return colibriChannelsInfo;
-    }
+	/**
+	 * Sets information about Colibri channels allocated for this participant.
+	 *
+	 * @param colibriChannelsInfo
+	 *            the IQ that holds colibri channels state.
+	 */
+	public void setColibriChannelsInfo(ColibriConferenceIQ colibriChannelsInfo) {
+		this.colibriChannelsInfo = colibriChannelsInfo;
+	}
 
-    /**
-     * Returns <tt>true</tt> if this participant supports RTP bundle and RTCP
-     * mux.
-     */
-    public boolean hasBundleSupport()
-    {
-        return supportedFeatures.contains(DiscoveryUtil.FEATURE_RTCP_MUX)
-                && supportedFeatures.contains(DiscoveryUtil.FEATURE_RTP_BUNDLE);
-    }
+	/**
+	 * Returns {@link ColibriConferenceIQ} that describes Colibri channels
+	 * allocated for this participant.
+	 */
+	public ColibriConferenceIQ getColibriChannelsInfo() {
+		return colibriChannelsInfo;
+	}
 
-    /**
-     * FIXME: we need to remove "is SIP gateway code", but there are still 
-     * situations where we need to know whether given peer is a human or not.
-     * For example when we close browser window and only SIP gateway stays
-     * we should destroy the conference and close SIP connection.
-     *  
-     * Returns <tt>true</tt> if this participant belongs to SIP gateway service.
-     */
-    public boolean isSipGateway()
-    {
-        return supportedFeatures.contains(
-                "http://jitsi.org/protocol/jigasi");
-    }
+	/**
+	 * Returns <tt>true</tt> if this participant supports RTP bundle and RTCP
+	 * mux.
+	 */
+	public boolean hasBundleSupport() {
+		return supportedFeatures.contains(DiscoveryUtil.FEATURE_RTCP_MUX)
+				&& supportedFeatures.contains(DiscoveryUtil.FEATURE_RTP_BUNDLE);
+	}
 
-    /**
-     * Returns <tt>true</tt> if RTP audio is supported by this peer.
-     */
-    public boolean hasAudioSupport()
-    {
-        return supportedFeatures.contains(DiscoveryUtil.FEATURE_AUDIO);
-    }
+	/**
+	 * FIXME: we need to remove "is SIP gateway code", but there are still
+	 * situations where we need to know whether given peer is a human or not.
+	 * For example when we close browser window and only SIP gateway stays we
+	 * should destroy the conference and close SIP connection.
+	 * 
+	 * Returns <tt>true</tt> if this participant belongs to SIP gateway service.
+	 */
+	public boolean isSipGateway() {
+		return supportedFeatures.contains("http://jitsi.org/protocol/jigasi");
+	}
 
-    /**
-     * Returns <tt>true</tt> if RTP video is supported by this peer.
-     */
-    public boolean hasVideoSupport()
-    {
-        return supportedFeatures.contains(DiscoveryUtil.FEATURE_VIDEO);
-    }
+	/**
+	 * Returns <tt>true</tt> if RTP audio is supported by this peer.
+	 */
+	public boolean hasAudioSupport() {
+		return supportedFeatures.contains(DiscoveryUtil.FEATURE_AUDIO);
+	}
 
-    /**
-     * Returns <tt>true</tt> if this peer supports ICE transport.
-     */
-    public boolean hasIceSupport()
-    {
-        return supportedFeatures.contains(DiscoveryUtil.FEATURE_ICE);
-    }
+	/**
+	 * Returns <tt>true</tt> if RTP video is supported by this peer.
+	 */
+	public boolean hasVideoSupport() {
+		return supportedFeatures.contains(DiscoveryUtil.FEATURE_VIDEO);
+	}
 
-    /**
-     * Returns <tt>true</tt> if this peer supports DTLS/SCTP. 
-     */
-    public boolean hasSctpSupport()
-    {
-        return supportedFeatures.contains(DiscoveryUtil.FEATURE_SCTP);
-    }
+	/**
+	 * Returns <tt>true</tt> if this peer supports ICE transport.
+	 */
+	public boolean hasIceSupport() {
+		return supportedFeatures.contains(DiscoveryUtil.FEATURE_ICE);
+	}
 
-    /**
-     * Sets the list of features supported by this participant.
-     * @see DiscoveryUtil for the list of predefined feature constants. 
-     * @param supportedFeatures the list of features to set.
-     */
-    public void setSupportedFeatures(List<String> supportedFeatures)
-    {
-        if (supportedFeatures == null)
-        {
-            throw new NullPointerException("supportedFeatures");
-        }
+	/**
+	 * Returns <tt>true</tt> if this peer supports DTLS/SCTP.
+	 */
+	public boolean hasSctpSupport() {
+		return supportedFeatures.contains(DiscoveryUtil.FEATURE_SCTP);
+	}
 
-        this.supportedFeatures = supportedFeatures;
-    }
+	/**
+	 * Sets the list of features supported by this participant.
+	 * 
+	 * @see DiscoveryUtil for the list of predefined feature constants.
+	 * @param supportedFeatures
+	 *            the list of features to set.
+	 */
+	public void setSupportedFeatures(List<String> supportedFeatures) {
+		if (supportedFeatures == null) {
+			throw new NullPointerException("supportedFeatures");
+		}
 
-    /**
-     * Sets muted status of this participant.
-     * @param mutedStatus new muted status to set.
-     */
-    public void setMuted(boolean mutedStatus)
-    {
-        this.mutedStatus = mutedStatus;
-    }
+		this.supportedFeatures = supportedFeatures;
+	}
 
-    /**
-     * Returns <tt>true</tt> if this participant is muted or <tt>false</tt>
-     * otherwise.
-     */
-    public boolean isMuted()
-    {
-        return mutedStatus;
-    }
+	/**
+	 * Sets muted status of this participant.
+	 * 
+	 * @param mutedStatus
+	 *            new muted status to set.
+	 */
+	public void setMuted(boolean mutedStatus) {
+		this.mutedStatus = mutedStatus;
+	}
 
-    /**
-     * Returns the list of SSRC groups of given media type that belong ot this
-     * participant.
-     * @param media the name of media type("audio","video", ...)
-     * @return the list of {@link SSRCGroup} for given media type.
-     */
-    public List<SSRCGroup> getSSRCGroupsForMedia(String media)
-    {
-        return ssrcGroups.getSSRCGroupsForMedia(media);
-    }
+	/**
+	 * Returns <tt>true</tt> if this participant is muted or <tt>false</tt>
+	 * otherwise.
+	 */
+	public boolean isMuted() {
+		return mutedStatus;
+	}
 
-    /**
-     * Returns <tt>MediaSSRCGroupMap</tt> that contains the mapping of media
-     * SSRC groups that describe media of this participant.
-     */
-    public MediaSSRCGroupMap getSSRCGroups()
-    {
-        return ssrcGroups;
-    }
+	/**
+	 * Returns the list of SSRC groups of given media type that belong ot this
+	 * participant.
+	 * 
+	 * @param media
+	 *            the name of media type("audio","video", ...)
+	 * @return the list of {@link SSRCGroup} for given media type.
+	 */
+	public List<SSRCGroup> getSSRCGroupsForMedia(String media) {
+		return ssrcGroups.getSSRCGroupsForMedia(media);
+	}
 
-    /**
-     * Adds SSRC groups for media described in given Jiongle content list.
-     * @param contents the list of <tt>ContentPacketExtension</tt> that
-     *                 describes media SSRC groups.
-     */
-    public void addSSRCGroupsFromContent(List<ContentPacketExtension> contents)
-    {
-        for (ContentPacketExtension content : contents)
-        {
-            List<SSRCGroup> groups
-                = SSRCGroup.getSSRCGroupsForContent(content);
+	/**
+	 * Returns <tt>MediaSSRCGroupMap</tt> that contains the mapping of media
+	 * SSRC groups that describe media of this participant.
+	 */
+	public MediaSSRCGroupMap getSSRCGroups() {
+		return ssrcGroups;
+	}
 
-            ssrcGroups.addSSRCGroups(content.getName(), groups);
-        }
-    }
+	/**
+	 * Adds SSRC groups for media described in given Jiongle content list.
+	 * 
+	 * @param contents
+	 *            the list of <tt>ContentPacketExtension</tt> that describes
+	 *            media SSRC groups.
+	 */
+	public void addSSRCGroupsFromContent(List<ContentPacketExtension> contents) {
+		for (ContentPacketExtension content : contents) {
+			List<SSRCGroup> groups = SSRCGroup.getSSRCGroupsForContent(content);
 
-    /**
-     * Schedules given media SSRC groups for later addition.
-     * @param ssrcGroups the <tt>MediaSSRCGroupMap</tt> to be scheduled for
-     *                   later addition.
-     */
-    public void scheduleSSRCGroupsToAdd(MediaSSRCGroupMap ssrcGroups)
-    {
-        ssrcGroupsToAdd.add(ssrcGroups);
-    }
+			ssrcGroups.addSSRCGroups(content.getName(), groups);
+		}
+	}
 
-    /**
-     * Schedules given media SSRC groups for later removal.
-     * @param ssrcGroups the <tt>MediaSSRCGroupMap</tt> to be scheduled for
-     *                   later removal.
-     */
-    public void scheduleSSRCGroupsToRemove(MediaSSRCGroupMap ssrcGroups)
-    {
-        ssrcGroupsToRemove.add(ssrcGroups);
-    }
+	/**
+	 * Schedules given media SSRC groups for later addition.
+	 * 
+	 * @param ssrcGroups
+	 *            the <tt>MediaSSRCGroupMap</tt> to be scheduled for later
+	 *            addition.
+	 */
+	public void scheduleSSRCGroupsToAdd(MediaSSRCGroupMap ssrcGroups) {
+		ssrcGroupsToAdd.add(ssrcGroups);
+	}
 
-    /**
-     * Returns the map of SSRC groups that are waiting for synchronization.
-     */
-    public MediaSSRCGroupMap getSSRCGroupsToAdd()
-    {
-        return ssrcGroupsToAdd;
-    }
+	/**
+	 * Schedules given media SSRC groups for later removal.
+	 * 
+	 * @param ssrcGroups
+	 *            the <tt>MediaSSRCGroupMap</tt> to be scheduled for later
+	 *            removal.
+	 */
+	public void scheduleSSRCGroupsToRemove(MediaSSRCGroupMap ssrcGroups) {
+		ssrcGroupsToRemove.add(ssrcGroups);
+	}
 
-    /**
-     * Returns the map of SSRC groups that are waiting for being removed from
-     * peer session.
-     */
-    public MediaSSRCGroupMap getSsrcGroupsToRemove()
-    {
-        return ssrcGroupsToRemove;
-    }
+	/**
+	 * Returns the map of SSRC groups that are waiting for synchronization.
+	 */
+	public MediaSSRCGroupMap getSSRCGroupsToAdd() {
+		return ssrcGroupsToAdd;
+	}
 
-    /**
-     * Removes SSRC groups from this participant state.
-     * @param ssrcGroupsToRemove the map of SSRC groups that will be removed
-     *                           from this participant media state description.
-     */
-    public void removeSSRCGroups(MediaSSRCGroupMap ssrcGroupsToRemove)
-    {
-        this.ssrcGroups.remove(ssrcGroupsToRemove);
-    }
+	/**
+	 * Returns the map of SSRC groups that are waiting for being removed from
+	 * peer session.
+	 */
+	public MediaSSRCGroupMap getSsrcGroupsToRemove() {
+		return ssrcGroupsToRemove;
+	}
 
-    /**
-     * Returns the display name of the participant.
-     * @return the display name of the participant.
-     */
-    public String getDisplayName()
-    {
-        return displayName;
-    }
+	/**
+	 * Removes SSRC groups from this participant state.
+	 * 
+	 * @param ssrcGroupsToRemove
+	 *            the map of SSRC groups that will be removed from this
+	 *            participant media state description.
+	 */
+	public void removeSSRCGroups(MediaSSRCGroupMap ssrcGroupsToRemove) {
+		this.ssrcGroups.remove(ssrcGroupsToRemove);
+	}
 
-    /**
-     * Sets the display name of the participant.
-     * @param displayName the display name to set.
-     */
-    public void setDisplayName(String displayName)
-    {
-        this.displayName = displayName;
-    }
+	/**
+	 * Returns the display name of the participant.
+	 * 
+	 * @return the display name of the participant.
+	 */
+	public String getDisplayName() {
+		return displayName;
+	}
+
+	/**
+	 * Sets the display name of the participant.
+	 * 
+	 * @param displayName
+	 *            the display name to set.
+	 */
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
+
+	/**
+	 * Gets the participant jabberid.
+	 *
+	 * @return the jabberid
+	 */
+	public String getJabberid() {
+		return jabberid;
+	}
+
+	/**
+	 * Sets the participantjabberid.
+	 *
+	 * @param jabberid
+	 *            the new jabberid
+	 */
+	public void setJabberid(String jabberid) {
+		this.jabberid = jabberid;
+	}
 
 }
