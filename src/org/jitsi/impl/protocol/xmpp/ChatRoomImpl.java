@@ -12,7 +12,6 @@ import net.java.sip.communicator.service.protocol.Message;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.Logger;
 
-import org.jitsi.impl.protocol.xmpp.extensions.MessageImpl;
 import org.jitsi.protocol.xmpp.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.packet.*;
