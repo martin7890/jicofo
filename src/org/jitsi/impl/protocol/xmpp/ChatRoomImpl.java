@@ -431,10 +431,13 @@ public class ChatRoomImpl extends AbstractChatRoom {
 	public Message createMessage(byte[] content, String contentType,
 			String contentEncoding, String subject) {
 
+		return null;
 	}
 
 	@Override
 	public Message createMessage(String messageText) {
+
+		return null;
 	}
 
 	@Override
