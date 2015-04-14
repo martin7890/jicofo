@@ -276,7 +276,7 @@ public class ChatRoomImpl extends AbstractChatRoom {
 
 	/**
 	 * Resets cached role instance for given participant.
-	 * 
+	 *
 	 * @param participant
 	 *            full mucJID of the participant for whom we want to reset
 	 *            cached role instance.
@@ -430,13 +430,11 @@ public class ChatRoomImpl extends AbstractChatRoom {
 	@Override
 	public Message createMessage(byte[] content, String contentType,
 			String contentEncoding, String subject) {
-		return new MessageImpl(content.toString(), contentType,
-				contentEncoding, subject);
+
 	}
 
 	@Override
 	public Message createMessage(String messageText) {
-		return new MessageImpl(messageText, "", "", "");
 	}
 
 	@Override
@@ -882,7 +880,7 @@ public class ChatRoomImpl extends AbstractChatRoom {
 			logger.error("nicknameChanged - NOT IMPLEMENTED");
 			/*
 			 * synchronized (members) { removeMember(oldNickname);
-			 * 
+			 *
 			 * addMember(newNickname); }
 			 */
 		}
@@ -892,7 +890,7 @@ public class ChatRoomImpl extends AbstractChatRoom {
 
 		/**
 		 * Processes an incoming presence packet.
-		 * 
+		 *
 		 * @param packet
 		 *            the incoming packet.
 		 */
@@ -919,7 +917,7 @@ public class ChatRoomImpl extends AbstractChatRoom {
 		/**
 		 * Processes a <tt>Presence</tt> packet addressed to our own occupant
 		 * JID.
-		 * 
+		 *
 		 * @param presence
 		 *            the packet to process.
 		 */
