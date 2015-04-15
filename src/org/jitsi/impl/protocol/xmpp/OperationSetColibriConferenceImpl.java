@@ -382,76 +382,76 @@ public class OperationSetColibriConferenceImpl
         ColibriConferenceIQ request = new ColibriConferenceIQ();
 		request.setID(conferenceState.getID());
 
-		ColibriConferenceIQ.Content audioContent = channelsInfo
-				.getContent("audio");
-		ColibriConferenceIQ.Content videoContent = channelsInfo
-				.getContent("video");
+	ColibriConferenceIQ.Content audioContent = channelsInfo
+		.getContent("audio");
+	ColibriConferenceIQ.Content videoContent = channelsInfo
+		.getContent("video");
 
-		if (audioContent == null) {
-			logger.error("Failed to mute - no audio content." + " Conf ID: "
-					+ request.getID());
-			return false;
-		}
-		if (videoContent == null) {
-			logger.error("Failed to mute - no video content." + " Conf ID: "
-					+ request.getID());
-			return false;
-		}
-		ColibriConferenceIQ.Content audioContentRequest = new ColibriConferenceIQ.Content(
-				audioContent.getName());
-		ColibriConferenceIQ.Content videoContentRequest = new ColibriConferenceIQ.Content(
-				videoContent.getName());
+	if (audioContent == null) {
+		logger.error("Failed to mute - no audio content." + " Conf ID: "
+			+ request.getID());
+		return false;
+	}
+	if (videoContent == null) {
+		logger.error("Failed to mute - no video content." + " Conf ID: "
+			+ request.getID());
+		return false;
+	}
+	ColibriConferenceIQ.Content audioContentRequest = new ColibriConferenceIQ.Content(
+			audioContent.getName());
+	ColibriConferenceIQ.Content videoContentRequest = new ColibriConferenceIQ.Content(
+			videoContent.getName());
 
-		for (ColibriConferenceIQ.Channel channel : audioContent.getChannels()) {
-			ColibriConferenceIQ.Channel channelRequest = new ColibriConferenceIQ.Channel();
+	for (ColibriConferenceIQ.Channel channel : audioContent.getChannels()) {
+		ColibriConferenceIQ.Channel channelRequest = new ColibriConferenceIQ.Channel();
 
-			channelRequest.setID(channel.getID());
+		channelRequest.setID(channel.getID());
 
-			if (mute) {
-				channelRequest.setDirection(MediaDirection.SENDONLY);
-			} else {
-				channelRequest.setDirection(MediaDirection.SENDRECV);
-			}
-
-			audioContentRequest.addChannel(channelRequest);
+		if (mute) {
+			channelRequest.setDirection(MediaDirection.SENDONLY);
+		} else {
+			channelRequest.setDirection(MediaDirection.SENDRECV);
 		}
 
-		for (ColibriConferenceIQ.Channel channel : videoContent.getChannels()) {
-			ColibriConferenceIQ.Channel channelRequest = new ColibriConferenceIQ.Channel();
+		audioContentRequest.addChannel(channelRequest);
+	}
 
-			channelRequest.setID(channel.getID());
+	for (ColibriConferenceIQ.Channel channel : videoContent.getChannels()) {
+		ColibriConferenceIQ.Channel channelRequest = new ColibriConferenceIQ.Channel();
 
-			if (mute) {
-				channelRequest.setDirection(MediaDirection.SENDONLY);
-			} else {
-				channelRequest.setDirection(MediaDirection.SENDRECV);
-			}
+		channelRequest.setID(channel.getID());
 
-			videoContentRequest.addChannel(channelRequest);
+		if (mute) {
+			channelRequest.setDirection(MediaDirection.SENDONLY);
+		} else {
+			channelRequest.setDirection(MediaDirection.SENDRECV);
 		}
 
-		if (audioContentRequest.getChannelCount() == 0) {
-			logger.error("Failed to mute - no audio channels to modify."
-					+ " ConfID:" + request.getID());
-			return false;
-		}
+		videoContentRequest.addChannel(channelRequest);
+	}
 
-		if (videoContentRequest.getChannelCount() == 0) {
-			logger.error("Failed to mute - no video channels to modify."
-					+ " ConfID:" + request.getID());
-			return false;
-		}
+	if (audioContentRequest.getChannelCount() == 0) {
+		logger.error("Failed to mute - no audio channels to modify."
+				+ " ConfID:" + request.getID());
+		return false;
+	}
 
-		request.setType(IQ.Type.SET);
-		request.setTo(jitsiVideobridge);
+	if (videoContentRequest.getChannelCount() == 0) {
+		logger.error("Failed to mute - no video channels to modify."
+				+ " ConfID:" + request.getID());
+		return false;
+	}
 
-		request.addContent(audioContentRequest);
-		request.addContent(videoContentRequest);
+	request.setType(IQ.Type.SET);
+	request.setTo(jitsiVideobridge);
 
-		connection.sendPacket(request);
+	request.addContent(audioContentRequest);
+	request.addContent(videoContentRequest);
 
-		// FIXME wait for response and set local status
+	connection.sendPacket(request);
 
-		return true;
+	// FIXME wait for response and set local status
+
+	return true;
     }
 }
