@@ -16,6 +16,8 @@ import org.jitsi.service.configuration.*;
 import org.jitsi.util.*;
 import org.jivesoftware.smack.provider.*;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.*;
 
 /**
@@ -102,6 +104,19 @@ public class FocusManager
     /**
      * The thread that expires {@link JitsiMeetConference}s.
      */
+   
+    /*private String roomName;
+    
+    public String getRoomName()
+    {
+    	return roomName;
+    }
+    public void setRoomName(String name)
+    {
+    	roomName=name;
+    	
+    }*/
+    
     private FocusExpireThread expireThread = new FocusExpireThread();
 
     /**
@@ -214,6 +229,15 @@ public class FocusManager
             = new JitsiMeetConference(
                     room, hostName, focusUserDomain,
                     focusUserName, focusUserPassword, this, config);
+        
+        logger.info("\n*****"  + room + "*****\n");
+        
+        String[] splitString = room.split("@");
+        String roomName = splitString[0];
+        
+       
+        
+        
         try
         {
             conferences.put(room, conference);
@@ -231,6 +255,18 @@ public class FocusManager
             logger.info("Created new focus for " + room + "@" + focusUserDomain
                             + " conferences count: " + conferences.size()
                             + " options:" + options.toString());
+            
+            /*FileWriter file = new FileWriter("/home/swapnil/swapnil/output.txt");
+            
+            file.write(roomName);
+            
+            logger.info(roomName);
+            */
+
+            // Send focus created event
+            FocusBundleActivator.getEventAdmin().sendEvent(
+                    EventFactory.focusCreated(
+                            conference.getId(), conference.getRoomName()));
 
             conference.start();
         }
@@ -239,6 +275,8 @@ public class FocusManager
             logger.error("Failed to start conference for room: " + room, e);
         }
     }
+    
+    
 
     /**
      * Destroys the conference for given room name.
@@ -277,6 +315,11 @@ public class FocusManager
         {
             focusAllocListener.onFocusDestroyed(roomName);
         }
+
+        // Send focus destroyed event
+        FocusBundleActivator.getEventAdmin().sendEvent(
+                EventFactory.focusDestroyed(
+                        conference.getId(), conference.getRoomName()));
 
         maybeDoShutdown();
     }
