@@ -11,9 +11,9 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.protocol.jabber.*;
 
-
 import org.jitsi.protocol.xmpp.*;
 import org.jitsi.util.*;
+
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.filter.*;
 import org.jivesoftware.smack.packet.*;
@@ -56,12 +56,6 @@ public class XmppProtocolProvider
      * The XMPP connection used by this instance.
      */
     private XMPPConnection connection;
-
-    /**
-     * Listens to connection status updates.
-     */
-    private XmppConnectionListener connListener
-        = new XmppConnectionListener();
 
     /**
      * Colibri operation set.
@@ -150,8 +144,6 @@ public class XmppProtocolProvider
 
             connection.connect();
 
-            connection.addConnectionListener(connListener);
-
             if (jabberAccountID.isAnonymousAuthUsed())
             {
                 connection.loginAnonymously();
@@ -177,42 +169,18 @@ public class XmppProtocolProvider
 
         discoInfoManager = new ScServiceDiscoveryManager(
             this, connection,
-            new String[]{}, new String[]{}, false);
+            new String[]{}, new String[]{});
 
-        notifyConnected();
+        registrationState = RegistrationState.REGISTERED;
+
+        fireRegistrationStateChanged(
+            RegistrationState.UNREGISTERED,
+            RegistrationState.REGISTERED,
+            RegistrationStateChangeEvent.REASON_NOT_SPECIFIED,
+            null);
 
         logger.info("XMPP provider " + jabberAccountID + " connected (JID: "
-            + connection.getUser() + ")");
-    }
-
-    private void notifyConnected()
-    {
-        if (!RegistrationState.REGISTERED.equals(registrationState))
-        {
-            RegistrationState oldState = registrationState;
-            registrationState = RegistrationState.REGISTERED;
-
-            fireRegistrationStateChanged(
-                oldState,
-                RegistrationState.REGISTERED,
-                RegistrationStateChangeEvent.REASON_NOT_SPECIFIED,
-                null);
-        }
-    }
-
-    private void notifyDisconnected()
-    {
-        if (!RegistrationState.UNREGISTERED.equals(registrationState))
-        {
-            RegistrationState oldState = registrationState;
-            registrationState = RegistrationState.UNREGISTERED;
-
-            fireRegistrationStateChanged(
-                oldState,
-                RegistrationState.UNREGISTERED,
-                RegistrationStateChangeEvent.REASON_NOT_SPECIFIED,
-                null);
-        }
+                        + connection.getUser() + ")");
     }
 
     private void enableDebugPacketsLogging()
@@ -234,18 +202,26 @@ public class XmppProtocolProvider
     public synchronized void unregister()
         throws OperationFailedException
     {
-        if (connection == null)
-            return;
+        if (connection != null)
+        {
+            connection.disconnect();
 
-        connection.disconnect();
+            logger.info(
+                "XMPP provider "
+                    + jabberAccountID + " disconnected");
 
-        connection.removeConnectionListener(connListener);
+            RegistrationState prevState = registrationState;
 
-        connection = null;
+            registrationState = RegistrationState.UNREGISTERED;
 
-        logger.info("XMPP provider " + jabberAccountID + " disconnected");
+            fireRegistrationStateChanged(
+                prevState,
+                RegistrationState.UNREGISTERED,
+                RegistrationStateChangeEvent.REASON_NOT_SPECIFIED,
+                null);
 
-        notifyDisconnected();
+            connection = null;
+        }
     }
 
     /**
@@ -342,7 +318,7 @@ public class XmppProtocolProvider
      *
      * @return {@link XmppConnection} provided by this instance.
      */
-    XmppConnection getConnectionAdapter()
+    public XmppConnection getConnectionAdapter()
     {
         if (connectionAdapter == null)
         {
@@ -384,7 +360,7 @@ public class XmppProtocolProvider
         }
         catch (XMPPException e)
         {
-            logger.error("Error discovering features: " + e.getMessage());
+            logger.error("Error discovering features", e);
         }
 
         for (String feature : features)
@@ -418,8 +394,8 @@ public class XmppProtocolProvider
     {
         DiscoverItems itemsDisco = discoInfoManager.discoverItems(node);
 
-        if (logger.isDebugEnabled())
-            logger.debug("HAVE Discovered items for: " + node);
+        //FIXME: fix logging levels
+        logger.info("HAVE Discovered items for: " + node);
 
         ArrayList<String> result = new ArrayList<String>();
 
@@ -427,10 +403,7 @@ public class XmppProtocolProvider
         while (items.hasNext())
         {
             DiscoverItems.Item item = items.next();
-
-            if (logger.isDebugEnabled())
-                logger.debug(item.toXML());
-
+            logger.info(item.toXML());
             if (item.getNode() != null && item.getEntityID().equals(node))
             {
                 // Subnode
@@ -463,56 +436,8 @@ public class XmppProtocolProvider
         }
         catch (XMPPException e)
         {
-            logger.debug("Error getting feature list: " + e.getMessage());
+            logger.error(e, e);
             return null;
-        }
-    }
-
-    class XmppConnectionListener
-        implements ConnectionListener
-    {
-        @Override
-        public void connectionClosed()
-        {
-            logger.info("XMPP connection closed");
-
-            //shutdownConnection();
-
-            //notifyConnFailed(null);
-
-            notifyDisconnected();
-        }
-
-        @Override
-        public void connectionClosedOnError(Exception e)
-        {
-            logger.error("XMPP connection closed on error: " + e.getMessage());
-
-            //shutdownConnection();
-
-            //notifyConnFailed(e);
-
-            notifyDisconnected();
-        }
-
-        @Override
-        public void reconnectingIn(int i)
-        {
-            logger.info("XMPP reconnecting in: " + i);
-        }
-
-        @Override
-        public void reconnectionSuccessful()
-        {
-            logger.info("XMPP reconnection successful");
-
-            notifyConnected();
-        }
-
-        @Override
-        public void reconnectionFailed(Exception e)
-        {
-            logger.error("XMPP reconnection failed: " + e.getMessage());
         }
     }
 
@@ -532,11 +457,7 @@ public class XmppProtocolProvider
         @Override
         public void sendPacket(Packet packet)
         {
-            if (connection.isConnected())
-                connection.sendPacket(packet);
-            else
-                logger.warn(
-                    "No connection - unable to send packet: " + packet.toXML());
+            connection.sendPacket(packet);
         }
 
         @Override

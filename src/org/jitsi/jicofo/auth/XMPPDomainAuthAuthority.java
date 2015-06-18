@@ -79,8 +79,7 @@ public class XMPPDomainAuthAuthority
                         "Missing mandatory attribute '"
                                 + ConferenceIq.MACHINE_UID_ATTR_NAME + "'");
             }
-            session = createNewSession(
-                machineUID, bareJid, query.getRoom(), null);
+            session = createNewSession(machineUID, bareJid);
         }
 
         // Authenticate JID with session(if it exists)
@@ -92,14 +91,10 @@ public class XMPPDomainAuthAuthority
         return null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public String getSessionForJid(String jabberId)
+    public boolean isUserAuthenticated(String jabberID)
     {
-        AuthenticationSession session = findSessionForJabberId(jabberId);
-        return session != null ? session.getSessionId() : null;
+        return findSessionForJabberId(jabberID) != null || verifyJid(jabberID);
     }
 
     @Override

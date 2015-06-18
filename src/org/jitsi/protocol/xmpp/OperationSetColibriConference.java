@@ -55,17 +55,6 @@ public interface OperationSetColibriConference
     String getConferenceId();
 
     /**
-     * Returns <tt>true</tt> if conference has been allocated during last
-     * allocate channels request. Method is synchronized and will return
-     * <tt>true</tt> only for the first time is called, so that only one thread
-     * will get positive value. That is because there are multiple threads
-     * allocating channels on conference start and all of them will have
-     * conference ID == null before operation, so it can't be used to detect
-     * conference created event.
-     */
-    public boolean hasJustAllocated();
-
-    /**
      * Creates channels on the videobridge for given parameters.
      *
      * @param useBundle <tt>true</tt> if channel transport bundle should be used
@@ -82,22 +71,10 @@ public interface OperationSetColibriConference
      */
     ColibriConferenceIQ createColibriChannels(
             boolean useBundle,
-            String endpointName,String roomName,
+            String endpointName,
             boolean peerIsInitiator,
             List<ContentPacketExtension> contents)
             throws OperationFailedException;
-
-    /**
-     * Updates the RTP description for active channels (existing on the bridge).
-     *
-     * @param map the map of content name to RTP description packet extension.
-     * @param localChannelsInfo <tt>ColibriConferenceIQ</tt> that contains
-     * the description of the channel for which the RTP description will be
-     * updated on the bridge.
-     */
-    void updateRtpDescription(
-            Map<String, RtpDescriptionPacketExtension> map,
-            ColibriConferenceIQ localChannelsInfo);
 
     /**
      * Updates transport information for active channels

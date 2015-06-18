@@ -30,7 +30,7 @@ import java.util.*;
  *
  * @author Pawel Domas
  */
-public class OperationSetColibriConferenceImpl  
+public class OperationSetColibriConferenceImpl
     implements OperationSetColibriConference
 {
     private final static net.java.sip.communicator.util.Logger logger
@@ -56,12 +56,6 @@ public class OperationSetColibriConferenceImpl
      */
     private ColibriBuilder colibriBuilder
         = new ColibriBuilder(conferenceState);
-
-    /**
-     * Flag used to figure out if Colibri conference has been allocated during
-     * last {@link #createColibriChannels(boolean, String, boolean, List)} call.
-     */
-    private boolean justAllocated = false;
 
     /**
      * Initializes this operation set.
@@ -135,7 +129,7 @@ public class OperationSetColibriConferenceImpl
     @Override
     public synchronized ColibriConferenceIQ createColibriChannels(
             boolean useBundle,
-            String endpointName,String roomName,
+            String endpointName,
             boolean peerIsInitiator,
             List<ContentPacketExtension> contents)
         throws OperationFailedException
@@ -143,7 +137,7 @@ public class OperationSetColibriConferenceImpl
         colibriBuilder.reset();
 
         colibriBuilder.addAllocateChannelsReq(
-            useBundle, endpointName,roomName, peerIsInitiator, contents);
+            useBundle, endpointName, peerIsInitiator, contents);
 
         ColibriConferenceIQ allocateRequest
             = colibriBuilder.getRequest(jitsiVideobridge);
@@ -173,8 +167,6 @@ public class OperationSetColibriConferenceImpl
                 OperationFailedException.GENERAL_ERROR);
         }
 
-        boolean conferenceExisted = getConferenceId() != null;
-
         /*
          * Update the complete ColibriConferenceIQ representation maintained by
          * this instance with the information given by the (current) response.
@@ -182,14 +174,6 @@ public class OperationSetColibriConferenceImpl
         ColibriAnalyser analyser = new ColibriAnalyser(conferenceState);
 
         analyser.processChannelAllocResp((ColibriConferenceIQ) response);
-
-        synchronized (this)
-        {
-            if (!conferenceExisted && getConferenceId() != null)
-            {
-                justAllocated = true;
-            }
-        }
 
         /*
          * Formulate the result to be returned to the caller which is a subset
@@ -199,19 +183,6 @@ public class OperationSetColibriConferenceImpl
          */
         return ColibriAnalyser.getResponseContents(
                     (ColibriConferenceIQ) response, contents);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public synchronized boolean hasJustAllocated()
-    {
-        if (this.justAllocated)
-        {
-            this.justAllocated = false;
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -228,28 +199,6 @@ public class OperationSetColibriConferenceImpl
         if (iq != null)
         {
             connection.sendPacket(iq);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void updateRtpDescription(
-            Map<String, RtpDescriptionPacketExtension> map,
-            ColibriConferenceIQ localChannelsInfo)
-    {
-        colibriBuilder.reset();
-
-        colibriBuilder.addRtpDescription(
-                map, localChannelsInfo);
-
-        ColibriConferenceIQ conferenceRequest
-                = colibriBuilder.getRequest(jitsiVideobridge);
-
-        if (conferenceRequest != null)
-        {
-            connection.sendPacket(conferenceRequest);
         }
     }
 
@@ -290,10 +239,6 @@ public class OperationSetColibriConferenceImpl
         updateIq.setID(conferenceState.getID());
         updateIq.setType(IQ.Type.SET);
         updateIq.setTo(jitsiVideobridge);
-        
-        
-        logger.info("######################"+updateIq+"##########################");
-        
 
         // NOTE(gp) now that we send sources as well, I think we can scrap this
         // flag, if its initial purpose was to determine whether or not the
@@ -373,8 +318,6 @@ public class OperationSetColibriConferenceImpl
             }
         }
 
-        logger.info("######################"+updateIq+"##########################");
-        
         if (updateNeeded)
         {
             connection.sendPacketAndGetReply(updateIq);
@@ -437,54 +380,78 @@ public class OperationSetColibriConferenceImpl
     public boolean muteParticipant(ColibriConferenceIQ channelsInfo, boolean mute)
     {
         ColibriConferenceIQ request = new ColibriConferenceIQ();
-        request.setID(conferenceState.getID());
+		request.setID(conferenceState.getID());
 
-        ColibriConferenceIQ.Content audioContent
-            = channelsInfo.getContent("audio");
-        if (audioContent == null)
-        {
-            logger.error("Failed to mute - no audio content." +
-                             " Conf ID: " + request.getID());
-            return false;
-        }
-        ColibriConferenceIQ.Content contentRequest
-            = new ColibriConferenceIQ.Content(audioContent.getName());
+	ColibriConferenceIQ.Content audioContent = channelsInfo
+		.getContent("audio");
+	ColibriConferenceIQ.Content videoContent = channelsInfo
+		.getContent("video");
 
-        for (ColibriConferenceIQ.Channel channel : audioContent.getChannels())
-        {
-            ColibriConferenceIQ.Channel channelRequest
-                = new ColibriConferenceIQ.Channel();
+	if (audioContent == null) {
+		logger.error("Failed to mute - no audio content." + " Conf ID: "
+			+ request.getID());
+		return false;
+	}
+	if (videoContent == null) {
+		logger.error("Failed to mute - no video content." + " Conf ID: "
+			+ request.getID());
+		return false;
+	}
+	ColibriConferenceIQ.Content audioContentRequest = new ColibriConferenceIQ.Content(
+			audioContent.getName());
+	ColibriConferenceIQ.Content videoContentRequest = new ColibriConferenceIQ.Content(
+			videoContent.getName());
 
-            channelRequest.setID(channel.getID());
+	for (ColibriConferenceIQ.Channel channel : audioContent.getChannels()) {
+		ColibriConferenceIQ.Channel channelRequest = new ColibriConferenceIQ.Channel();
 
-            if (mute)
-            {
-                channelRequest.setDirection(MediaDirection.SENDONLY);
-            }
-            else
-            {
-                channelRequest.setDirection(MediaDirection.SENDRECV);
-            }
+		channelRequest.setID(channel.getID());
 
-            contentRequest.addChannel(channelRequest);
-        }
+		if (mute) {
+			channelRequest.setDirection(MediaDirection.SENDONLY);
+		} else {
+			channelRequest.setDirection(MediaDirection.SENDRECV);
+		}
 
-        if (contentRequest.getChannelCount() == 0)
-        {
-            logger.error("Failed to mute - no channels to modify." +
-                             " ConfID:" + request.getID());
-            return false;
-        }
+		audioContentRequest.addChannel(channelRequest);
+	}
 
-        request.setType(IQ.Type.SET);
-        request.setTo(jitsiVideobridge);
+	for (ColibriConferenceIQ.Channel channel : videoContent.getChannels()) {
+		ColibriConferenceIQ.Channel channelRequest = new ColibriConferenceIQ.Channel();
 
-        request.addContent(contentRequest);
+		channelRequest.setID(channel.getID());
 
-        connection.sendPacket(request);
+		if (mute) {
+			channelRequest.setDirection(MediaDirection.SENDONLY);
+		} else {
+			channelRequest.setDirection(MediaDirection.SENDRECV);
+		}
 
-        // FIXME wait for response and set local status
+		videoContentRequest.addChannel(channelRequest);
+	}
 
-        return true;
+	if (audioContentRequest.getChannelCount() == 0) {
+		logger.error("Failed to mute - no audio channels to modify."
+				+ " ConfID:" + request.getID());
+		return false;
+	}
+
+	if (videoContentRequest.getChannelCount() == 0) {
+		logger.error("Failed to mute - no video channels to modify."
+				+ " ConfID:" + request.getID());
+		return false;
+	}
+
+	request.setType(IQ.Type.SET);
+	request.setTo(jitsiVideobridge);
+
+	request.addContent(audioContentRequest);
+	request.addContent(videoContentRequest);
+
+	connection.sendPacket(request);
+
+	// FIXME wait for response and set local status
+
+	return true;
     }
 }

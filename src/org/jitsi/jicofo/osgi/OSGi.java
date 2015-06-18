@@ -137,7 +137,6 @@ public class OSGi
             useMockProtocols ? mockProtocols : protocols,
             {
                 "org/jitsi/jicofo/FocusBundleActivator",
-                "org/jitsi/impl/reservation/rest/Activator",
                 "org/jitsi/jicofo/auth/AuthBundleActivator"
             },
             {

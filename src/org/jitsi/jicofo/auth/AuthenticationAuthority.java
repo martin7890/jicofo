@@ -81,11 +81,10 @@ public interface AuthenticationAuthority
     void removeAuthenticationListener(AuthenticationListener l);
 
     /**
-     * Returns authentication session ID string for given <tt>jabberId</tt> if
-     * it is authenticated.
+     * Returns <tt>true</tt> if user is authenticated in given conference room.
      * @param jabberId the Jabber ID of the user to be verified.
      */
-    String getSessionForJid(String jabberId);
+    boolean isUserAuthenticated(String jabberId);
 
     /**
      * Returns user login associated with given <tt>jabberId</tt>.

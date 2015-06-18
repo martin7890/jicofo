@@ -7,6 +7,7 @@
 package org.jitsi.jicofo.auth;
 
 import net.java.sip.communicator.util.Logger;
+
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.*;
 
@@ -102,29 +103,6 @@ class ShibbolethHandler
         }
     }
 
-    private Map<String, String> createPropertiesMap(HttpServletRequest request)
-    {
-        HashMap<String, String> propertiesMap = new HashMap<String, String>();
-
-        Enumeration<String> headers = request.getHeaderNames();
-        while (headers.hasMoreElements())
-        {
-            String headerName = headers.nextElement();
-            propertiesMap.put(headerName, request.getHeader(headerName));
-        }
-
-        Enumeration<String> attributes = request.getAttributeNames();
-        while (attributes.hasMoreElements())
-        {
-            String attributeName = attributes.nextElement();
-            propertiesMap.put(
-                attributeName,
-                String.valueOf(request.getAttribute(attributeName)));
-        }
-
-        return propertiesMap;
-    }
-
     /**
      * Retrieves Shibboleth attribute value for given name. In case of
      * Apache+Shibboleth deployment attributes are retrieved with
@@ -170,7 +148,6 @@ class ShibbolethHandler
             return;
         }
         // Extract room name from MUC address
-        String fullRoom = room;
         room = MucUtil.extractName(room);
 
         String machineUID = request.getParameter("machineUID");
@@ -194,9 +171,7 @@ class ShibbolethHandler
 
         // User authenticated
         String sessionId
-            = shibbolethAuthAuthority.authenticateUser(
-                    machineUID, email, fullRoom, createPropertiesMap(request));
-
+            = shibbolethAuthAuthority.authenticateUser(machineUID, email);
         if (sessionId == null)
         {
             response.sendError(
