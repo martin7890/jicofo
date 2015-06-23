@@ -1,8 +1,19 @@
 /*
- * Jitsi Videobridge, OpenSource video conferencing.
+ * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package mock;
 
@@ -14,6 +25,7 @@ import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jingle.*;
 import net.java.sip.communicator.util.*;
 
+import org.jitsi.impl.protocol.xmpp.*;
 import org.jitsi.jicofo.*;
 import org.jitsi.protocol.xmpp.*;
 import org.jitsi.protocol.xmpp.util.*;
@@ -54,6 +66,8 @@ public class MockParticipant
 
     private final Object addSourceLock = new Object();
 
+    private final Object joinLock = new Object();
+
     private MediaSSRCMap remoteSSRCs = new MediaSSRCMap();
 
     private MediaSSRCGroupMap remoteSSRCgroups = new MediaSSRCGroupMap();
@@ -61,6 +75,8 @@ public class MockParticipant
     private HashMap<String, IceUdpTransportPacketExtension> transportMap;
 
     private JingleSession jingleSession;
+
+    private JingleHandler jingleHandler = new JingleHandler();
 
     private String myJid;
 
@@ -88,31 +104,72 @@ public class MockParticipant
         return user;
     }
 
+    public void joinInNewThread(final MockMultiUserChat chat)
+    {
+        new Thread(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                join(chat);
+            }
+        }).start();
+    }
+
+    public void waitForJoinThread(long timeout)
+            throws InterruptedException
+    {
+        synchronized (joinLock)
+        {
+            if (xmppPeer == null)
+            {
+                joinLock.wait(timeout);
+            }
+            if (xmppPeer == null)
+            {
+                throw new RuntimeException(
+                    "Failed to join the room within" +
+                            " the time limit specified: " + timeout);
+            }
+        }
+    }
+
     public void join(MockMultiUserChat chat)
     {
-        if (useBundle)
-        {
-            user = chat.createMockRoomMember(nick);
-            user.addBundleSupport();
-            chat.mockJoin(user);
-        }
-        else
-        {
-            user = chat.mockJoin(nick);
-        }
+        user = chat.createMockRoomMember(nick);
+
+        user.setupFeatures(useBundle);
 
         initContents();
 
-        mockConnection
-            = ((MockProtocolProvider)chat.getParentProvider())
-                    .getMockXmppConnection();
+        MockProtocolProvider protocolProvider
+            = (MockProtocolProvider)chat.getParentProvider();
+
+        mockConnection = protocolProvider.getMockXmppConnection();
+
+        OperationSetDirectSmackXmpp smackOpSet
+            = protocolProvider.getOperationSet(
+                    OperationSetDirectSmackXmpp.class);
+
+        myJid = chat.getName() + "/" + user.getName();
+
+        this.jingle = new UtilityJingleOpSet(myJid, mockConnection, smackOpSet);
+
+        jingle.init();
 
         mockConnection.addPacketHandler(this, this);
 
-        xmppPeer = new XmppPeer(
-            user.getContactAddress(), mockConnection);
+        chat.mockJoin(user);
 
-        xmppPeer.start();
+        synchronized (joinLock)
+        {
+            xmppPeer = new XmppPeer(
+                user.getContactAddress(), mockConnection);
+
+            xmppPeer.start();
+
+            joinLock.notifyAll();
+        }
     }
 
     public static long nextSSRC()
@@ -183,19 +240,39 @@ public class MockParticipant
         myContents.add(video);
     }
 
-    public JingleIQ[] acceptInvite(long timeout)
+    public void acceptInviteInBg()
     {
-        JingleIQ user1Invite = (JingleIQ) xmppPeer.waitForPacket(timeout);
-        if (user1Invite == null)
+        new Thread(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                try
+                {
+                    acceptInvite(5000);
+                }
+                catch (InterruptedException e)
+                {
+                    logger.error(e, e);
+                }
+            }
+        },"Accept invite " + nick).start();
+    }
+
+    public JingleIQ[] acceptInvite(long timeout)
+        throws InterruptedException
+    {
+        JingleIQ invite = jingle.acceptSession(timeout, jingleHandler);
+        if (invite == null)
         {
             throw new RuntimeException(nick + " - wait for invite timeout");
         }
 
-        logger.info(nick + " invite: " + user1Invite.toXML());
+        logger.info(nick + " invite: " + invite.toXML());
 
         JingleIQ user1Accept = generateSessionAccept(
-            user1Invite,
-            createTransportMap(user1Invite));
+            invite,
+            createTransportMap(invite));
 
         logger.info(nick + " accept: " + user1Accept.toXML());
 
@@ -203,12 +280,9 @@ public class MockParticipant
 
         this.myJid = user1Accept.getFrom();
         this.remoteJid = user1Accept.getTo();
-        // FIXME: move accept to Jingle operation set
-        this.jingleSession = new JingleSession(user1Accept.getSID(), remoteJid);
-        this.jingle = new UtilityJingleOpSet(myJid, mockConnection);
-        this.jingle.addSession(jingleSession);
+        this.jingleSession = jingle.getSession(invite.getSID());
 
-        return new JingleIQ[] { user1Invite, user1Accept };
+        return new JingleIQ[] { invite, user1Accept };
     }
 
     public void leave()
@@ -506,5 +580,10 @@ public class MockParticipant
     public List<SourcePacketExtension> getVideoSSRCS()
     {
         return localSSRCs.getSSRCsForMedia("video");
+    }
+
+    class JingleHandler extends DefaultJingleRequestHandler
+    {
+
     }
 }

@@ -1,8 +1,19 @@
 /*
- * Jitsi Videobridge, OpenSource video conferencing.
+ * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.jicofo;
 
@@ -53,8 +64,10 @@ public class AdvertiseSSRCsTest
 
     @Test
     public void testOneToOneConference()
-        throws OperationFailedException, OperationNotSupportedException
+        throws Exception
     {
+        //FIXME: test when there is participant without contents
+
         String roomName = "testSSRCs@conference.pawel.jitsi.net";
         String serverName = "test-server";
 
@@ -76,8 +89,8 @@ public class AdvertiseSSRCsTest
         user2.join(chat);
 
         // Accept invite with all users
-        assertNotNull(user1.acceptInvite(2000));
-        assertNotNull(user2.acceptInvite(2000));
+        assertNotNull(user1.acceptInvite(4000));
+        assertNotNull(user2.acceptInvite(4000));
 
         user1.waitForAddSource(2000);
 
@@ -93,7 +106,7 @@ public class AdvertiseSSRCsTest
 
         MockParticipant user3 = new MockParticipant("User3");
         user3.join(chat);
-        assertNotNull(user3.acceptInvite(2000));
+        assertNotNull(user3.acceptInvite(4000));
 
         user1.waitForAddSource(2000);
 
@@ -107,7 +120,7 @@ public class AdvertiseSSRCsTest
 
     @Test
     public void testOneToOneSSRCGroupsConference()
-        throws OperationFailedException, OperationNotSupportedException
+        throws Exception
     {
         String roomName = "testSSRCs@conference.pawel.jitsi.net";
         String serverName = "test-server";
@@ -134,8 +147,8 @@ public class AdvertiseSSRCsTest
         user2.join(chat);
 
         // Accept invite with all users
-        assertNotNull(user1.acceptInvite(2000));
-        assertNotNull(user2.acceptInvite(2000));
+        assertNotNull(user1.acceptInvite(4000));
+        assertNotNull(user2.acceptInvite(4000));
 
         user1.waitForAddSource(2000);
 
@@ -190,7 +203,7 @@ public class AdvertiseSSRCsTest
         // This one has no groups
         MockParticipant user3 = new MockParticipant("User3");
         user3.join(chat);
-        assertNotNull(user3.acceptInvite(2000));
+        assertNotNull(user3.acceptInvite(4000));
 
         user1.waitForAddSource(2000);
 

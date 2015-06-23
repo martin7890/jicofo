@@ -1,8 +1,19 @@
 /*
  * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.protocol;
 
@@ -65,12 +76,15 @@ public class JitsiMeetConfig
      */
     public static final String OPEN_SCTP_PNAME = "openSctp";
 
-    /*
-     * The name of the enable firefox hacks configuration property. Pass 'true'
-     * to enable or 'false' to disable.
+    /**
+     * The name of the start muted property for audio.
      */
-    public static final String ENABLE_FIREFOX_HACKS_PNAME
-            = "enableFirefoxHacks";
+    public static final String START_AUDIO_MUTED = "startAudioMuted";
+
+    /**
+     * The name of the start muted property for video.
+     */
+    public static final String START_VIDEO_MUTED = "startVideoMuted";
 
     private final Map<String, String> properties;
 
@@ -138,15 +152,6 @@ public class JitsiMeetConfig
         return getBoolean(OPEN_SCTP_PNAME);
     }
 
-    /**
-     * Returns the value of the enable firefox hacks configuration property or
-     * <tt>null</tt> if it has not been specified.
-     */
-    public Boolean enableFirefoxHacks()
-    {
-        return getBoolean(ENABLE_FIREFOX_HACKS_PNAME);
-    }
-
     private Boolean getBoolean(String name)
     {
         String stringValue = properties.get(name);
@@ -180,10 +185,27 @@ public class JitsiMeetConfig
             }
             catch (NumberFormatException ex)
             {
-                logger.error(
-                    "Error parsing: " + name + ", v: " + stringValue, ex);
+                logger.error("Error parsing: " + name + ", v: " + stringValue);
             }
         }
         return intValue;
+    }
+
+    /**
+     * Returns the value of the start muted audio property.
+     * @return the value of the start muted audio property.
+     */
+    public Integer getAudioMuted()
+    {
+        return getInt(START_AUDIO_MUTED);
+    }
+
+    /**
+     * Returns the value of the start muted video property.
+     * @return the value of the start muted video property.
+     */
+    public Integer getVideoMuted()
+    {
+        return getInt(START_VIDEO_MUTED);
     }
 }

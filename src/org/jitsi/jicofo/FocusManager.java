@@ -1,31 +1,47 @@
 /*
  * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.jicofo;
 
+import net.java.sip.communicator.service.protocol.*;
+import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.service.shutdown.*;
 import net.java.sip.communicator.util.*;
 import net.java.sip.communicator.util.Logger;
 
 import org.jitsi.jicofo.log.*;
 import org.jitsi.protocol.*;
+import org.jitsi.protocol.xmpp.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.util.*;
+import org.jitsi.videobridge.eventadmin.*;
 import org.jivesoftware.smack.provider.*;
 
 import java.util.*;
 
 /**
  * Manages {@link JitsiMeetConference} on some server. Takes care of creating
- * and expiring conference focus instances.
+ * and expiring conference focus instances. Manages focus XMPP connection.
  *
  * @author Pawel Domas
  */
 public class FocusManager
-    implements JitsiMeetConference.ConferenceListener
+    implements JitsiMeetConference.ConferenceListener,
+               RegistrationStateChangeListener
 {
     /**
      * The logger used by this instance.
@@ -80,11 +96,6 @@ public class FocusManager
         = "org.jitsi.jicofo.FOCUS_USER_PASSWORD";
 
     /**
-     * The address of XMPP server to which the focus user will connect to.
-     */
-    private String hostName;
-
-    /**
      * The XMPP domain used by the focus user to register to.
      */
     private String focusUserDomain;
@@ -93,11 +104,6 @@ public class FocusManager
      * The username used by the focus to login.
      */
     private String focusUserName;
-
-    /**
-     * Optional focus user password(if null then will login anonymously).
-     */
-    private String focusUserPassword;
 
     /**
      * The thread that expires {@link JitsiMeetConference}s.
@@ -118,16 +124,34 @@ public class FocusManager
     private FocusAllocationListener focusAllocListener;
 
     /**
+     * XMPP protocol provider handler used by the focus.
+     */
+    private ProtocolProviderHandler protocolProviderHandler
+        = new ProtocolProviderHandler();
+
+    /**
      * <tt>JitsiMeetServices</tt> instance that recognizes currently available
      * conferencing services like Jitsi videobridge or SIP gateway.
      */
     private JitsiMeetServices jitsiMeetServices;
 
     /**
+     * Observes and discovers JVB instances and other conference components on
+     * our XMPP domain.
+     */
+    private ComponentsDiscovery componentsDiscovery;
+
+    /**
      * Indicates if graceful shutdown mode has been enabled and
      * no new conference request will be accepted.
      */
     private boolean shutdownInProgress;
+
+    /**
+     * Handler that takes care of pre-processing various Jitsi Meet extensions
+     * IQs sent from conference participants to the focus.
+     */
+    private MeetExtensionsHandler meetExtensionsHandler;
 
     /**
      * Starts this manager for given <tt>hostName</tt>.
@@ -138,7 +162,7 @@ public class FocusManager
 
         ConfigurationService config = FocusBundleActivator.getConfigService();
 
-        hostName = config.getString(HOSTNAME_PNAME);
+        String hostName = config.getString(HOSTNAME_PNAME);
 
         String xmppDomain = config.getString(XMPP_DOMAIN_PNAME);
 
@@ -146,21 +170,34 @@ public class FocusManager
 
         focusUserName = config.getString(FOCUS_USER_NAME_PNAME);
 
-        focusUserPassword = config.getString(FOCUS_USER_PASSWORD_PNAME);
+        String focusUserPassword = config.getString(FOCUS_USER_PASSWORD_PNAME);
 
-        jitsiMeetServices = new JitsiMeetServices();
+        protocolProviderHandler.start(
+            hostName, focusUserDomain, focusUserPassword, focusUserName);
 
-        jitsiMeetServices.start(hostName, xmppDomain,
-            focusUserDomain, focusUserName, focusUserPassword);
+        jitsiMeetServices = new JitsiMeetServices(
+            protocolProviderHandler.getOperationSet(
+                OperationSetSubscription.class));
+
+        componentsDiscovery = new ComponentsDiscovery(jitsiMeetServices);
+
+        componentsDiscovery.start(xmppDomain, protocolProviderHandler);
+
+        meetExtensionsHandler = new MeetExtensionsHandler(this);
 
         ProviderManager
             .getInstance()
                 .addExtensionProvider(LogPacketExtension.LOG_ELEM_NAME,
-                                      LogPacketExtension.NAMESPACE,
-                                      new LogExtensionProvider());
+                    LogPacketExtension.NAMESPACE,
+                    new LogExtensionProvider());
+
         FocusBundleActivator
             .bundleContext.registerService(
-                    JitsiMeetServices.class, jitsiMeetServices, null);
+                JitsiMeetServices.class, jitsiMeetServices, null);
+
+        protocolProviderHandler.addRegistrationListener(this);
+
+        protocolProviderHandler.register();
     }
 
     /**
@@ -170,7 +207,15 @@ public class FocusManager
     {
         expireThread.stop();
 
-        jitsiMeetServices.stop();
+        if (componentsDiscovery != null)
+        {
+            componentsDiscovery.stop();
+            componentsDiscovery = null;
+        }
+
+        meetExtensionsHandler.dispose();
+
+        protocolProviderHandler.stop();
     }
 
     /**
@@ -180,9 +225,13 @@ public class FocusManager
      * @param properties configuration properties map included in the request.
      * @return <tt>true</tt> if conference focus is in the room and ready to
      *         handle session participants.
+     *
+     * @throws Exception if for any reason we have failed to create
+     *                   the conference
      */
     public synchronized boolean conferenceRequest(
             String room, Map<String, String> properties)
+        throws Exception
     {
         if (StringUtils.isNullOrEmpty(room))
             return false;
@@ -205,38 +254,54 @@ public class FocusManager
      * @param room name of the MUC room of Jitsi Meet conference.
      * @param properties configuration properties, see {@link JitsiMeetConfig}
      *                   for the list of valid properties.
+     *
+     * @throws Exception if any error occurs.
      */
     private void createConference(String room, Map<String, String> properties)
+        throws Exception
     {
         JitsiMeetConfig config = new JitsiMeetConfig(properties);
 
         JitsiMeetConference conference
             = new JitsiMeetConference(
-                    room, hostName, focusUserDomain,
-                    focusUserName, focusUserPassword, this, config);
+                    room, focusUserName, protocolProviderHandler, this, config);
+
+        conferences.put(room, conference);
+
+        StringBuilder options = new StringBuilder();
+        for (Map.Entry<String, String> option : properties.entrySet())
+        {
+            options.append("\n    ")
+                .append(option.getKey())
+                .append(": ")
+                .append(option.getValue());
+
+        }
+
+        logger.info("Created new focus for " + room + "@" + focusUserDomain
+                        + " conferences count: " + conferences.size()
+                        + " options:" + options.toString());
+
+        // Send focus created event
+        EventAdmin eventAdmin = FocusBundleActivator.getEventAdmin();
+        if (eventAdmin != null)
+        {
+            eventAdmin.sendEvent(
+                EventFactory.focusCreated(
+                    conference.getId(), conference.getRoomName()));
+        }
+
         try
         {
-            conferences.put(room, conference);
-
-            StringBuilder options = new StringBuilder();
-            for (Map.Entry<String, String> option : properties.entrySet())
-            {
-                options.append("\n    ")
-                    .append(option.getKey())
-                    .append(": ")
-                    .append(option.getValue());
-
-            }
-
-            logger.info("Created new focus for " + room + "@" + focusUserDomain
-                            + " conferences count: " + conferences.size()
-                            + " options:" + options.toString());
-
             conference.start();
         }
         catch (Exception e)
         {
-            logger.error("Failed to start conference for room: " + room, e);
+            logger.info("Exception while trying to start the conference", e);
+
+            conference.stop();
+
+            throw e;
         }
     }
 
@@ -277,6 +342,11 @@ public class FocusManager
         {
             focusAllocListener.onFocusDestroyed(roomName);
         }
+
+        // Send focus destroyed event
+        FocusBundleActivator.getEventAdmin().sendEvent(
+                EventFactory.focusDestroyed(
+                        conference.getId(), conference.getRoomName()));
 
         maybeDoShutdown();
     }
@@ -370,6 +440,30 @@ public class FocusManager
         void onFocusDestroyed(String roomName);
 
         // Add focus allocated method if needed
+    }
+
+    /**
+     * Returns operation set instance for focus XMPP connection.
+     * @param opsetClass operation set class.
+     * @param <T> the class of Operation Set to be reqturned
+     * @return operation set instance of given class or <tt>null</tt> if
+     * given operation set is not implemented by focus XMPP provider.
+     */
+    public <T extends OperationSet> T getOperationSet(Class<T> opsetClass)
+    {
+        return protocolProviderHandler.getOperationSet(opsetClass);
+    }
+
+    @Override
+    public void registrationStateChanged(RegistrationStateChangeEvent evt)
+    {
+        RegistrationState registrationState = evt.getNewState();
+        logger.info("XMPP provider reg state: " + registrationState);
+        if (RegistrationState.REGISTERED.equals(registrationState))
+        {
+            // Do initializations which require valid connection
+            meetExtensionsHandler.init();
+        }
     }
 
     /**

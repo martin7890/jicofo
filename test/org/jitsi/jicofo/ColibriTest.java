@@ -1,8 +1,19 @@
 /*
- * Jitsi Videobridge, OpenSource video conferencing.
+ * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.jicofo;
 
@@ -16,8 +27,9 @@ import net.java.sip.communicator.util.*;
 
 import org.jitsi.jicofo.osgi.*;
 import org.jitsi.jicofo.util.*;
-import org.jitsi.protocol.xmpp.*;
 
+import org.jitsi.protocol.*;
+import org.jitsi.protocol.xmpp.colibri.*;
 import org.jitsi.service.neomedia.*;
 
 import org.junit.*;
@@ -66,6 +78,8 @@ public class ColibriTest
     {
         String roomName = "testroom@conference.pawel.jitsi.net";
         String serverName = "test-server";
+        JitsiMeetConfig config
+            = new JitsiMeetConfig(new HashMap<String,String>());
 
         TestConference testConference = new TestConference();
 
@@ -77,7 +91,11 @@ public class ColibriTest
         OperationSetColibriConference colibriTool
             = pps.getOperationSet(OperationSetColibriConference.class);
 
-        colibriTool.setJitsiVideobridge(
+        ColibriConference colibriConf = colibriTool.createNewConference();
+
+        colibriConf.setConfig(config);
+
+        colibriConf.setJitsiVideobridge(
             testConference.getMockVideoBridge().getBridgeJid());
 
         List<ContentPacketExtension> contents
@@ -85,13 +103,13 @@ public class ColibriTest
 
         ContentPacketExtension audio
             = JingleOfferFactory.createContentForMedia(
-                    MediaType.AUDIO, false, false);
+                    MediaType.AUDIO, false, true);
         ContentPacketExtension video
             = JingleOfferFactory.createContentForMedia(
-                    MediaType.VIDEO, false, false);
+                    MediaType.VIDEO, false, true);
         ContentPacketExtension data
             = JingleOfferFactory.createContentForMedia(
-                    MediaType.DATA, false, false);
+                    MediaType.DATA, false, true);
 
         contents.add(audio);
         contents.add(video);
@@ -105,13 +123,13 @@ public class ColibriTest
         String peer2 = "endpoint2";
 
         ColibriConferenceIQ peer1Channels
-            = colibriTool.createColibriChannels(
+            = colibriConf.createColibriChannels(
                 peer1UseBundle, peer1, true, contents);
 
         assertEquals(3 , mockBridge.getChannelsCount());
 
         ColibriConferenceIQ peer2Channels
-            = colibriTool.createColibriChannels(
+            = colibriConf.createColibriChannels(
                 peer2UseBundle, peer2, true, contents);
 
         assertEquals(6 , mockBridge.getChannelsCount());
@@ -126,14 +144,14 @@ public class ColibriTest
         assertEquals("Peer 2 should have single bundle allocated !",
                      1, peer2Channels.getChannelBundles().size());
 
-        colibriTool.expireChannels(peer2Channels);
+        colibriConf.expireChannels(peer2Channels);
 
         //FIXME: fix unreliable sleep call
         Thread.sleep(1000);
 
         assertEquals(3, mockBridge.getChannelsCount());
 
-        colibriTool.expireChannels(peer1Channels);
+        colibriConf.expireChannels(peer1Channels);
 
         //FIXME: fix unreliable sleep call
         Thread.sleep(1000);

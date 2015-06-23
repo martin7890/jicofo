@@ -1,8 +1,19 @@
 /*
- * Jitsi Videobridge, OpenSource video conferencing.
+ * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.jicofo;
 
@@ -69,10 +80,10 @@ public class BridgeSelectorTest
         osgi.shutdown();
     }
 
-    private void createMockJvbNodes(JitsiMeetServices meetServices)
+    private void createMockJvbNodes(JitsiMeetServices meetServices,
+                                    MockProtocolProvider protocolProvider)
     {
-        MockSetSimpleCapsOpSet capsOpSet
-            = (MockSetSimpleCapsOpSet) meetServices.getCapsOpSet();
+        MockSetSimpleCapsOpSet capsOpSet = protocolProvider.getMockCapsOpSet();
 
         MockCapsNode jvb1Node
             = new MockCapsNode(
@@ -108,7 +119,7 @@ public class BridgeSelectorTest
         MockProtocolProvider mockProvider
             = (MockProtocolProvider) providerListener.obtainProvider(1000);
 
-        createMockJvbNodes(meetServices);
+        createMockJvbNodes(meetServices, mockProvider);
 
         BridgeSelector selector = meetServices.getBridgeSelector();
 
@@ -233,6 +244,43 @@ public class BridgeSelectorTest
 
         assertEquals(jvb2Jid,
                 selector.getPrioritizedBridgesList().get(0));
+
+        // FAILURE RESET THRESHOLD
+        testFailureResetThreshold(selector, mockSubscriptions);
+    }
+
+    private void testFailureResetThreshold(
+        BridgeSelector selector, MockSubscriptionOpSetImpl mockSubscriptions)
+            throws InterruptedException
+    {
+        String[] nodes = new String[]{ jvb1Jid, jvb2Jid, jvb3Jid};
+
+        String[] pubSubNodes
+            = new String[] { jvb1PubSubNode, jvb2PubSubNode, jvb3PubSubNode};
+
+        // Will restore failure status after 100 ms
+        selector.setFailureResetThreshold(100);
+
+        for (int testNode = 0; testNode < nodes.length; testNode++)
+        {
+            for (int idx=0; idx < nodes.length; idx++)
+            {
+                boolean isTestNode = idx == testNode;
+
+                // Test node has 0 load...
+                mockSubscriptions.fireSubscriptionNotification(
+                    pubSubNodes[idx], createJvbStats(isTestNode ? 0 : 100));
+
+                // ... and is not operational
+                selector.updateBridgeOperationalStatus(nodes[idx], !isTestNode);
+            }
+            // Should not be selected now
+            assertNotEquals(nodes[testNode], selector.selectVideobridge());
+            // Wait for faulty status reset
+            Thread.sleep(150);
+            // Test node should recover
+            assertEquals(nodes[testNode], selector.selectVideobridge());
+        }
     }
 
     PacketExtension createJvbStats(int conferenceCount)

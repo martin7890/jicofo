@@ -1,21 +1,29 @@
 /*
  * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.jicofo.auth;
 
-import net.java.sip.communicator.util.*;
-
 import net.java.sip.communicator.util.Logger;
+
 import org.jitsi.impl.protocol.xmpp.extensions.*;
-import org.jitsi.jicofo.*;
-import org.jitsi.jicofo.reservation.*;
-import org.jitsi.protocol.xmpp.util.*;
 import org.jitsi.util.*;
 import org.jivesoftware.smack.packet.*;
-import org.osgi.framework.*;
+
+import java.util.*;
 
 /**
  * Shibboleth implementation of {@link AuthenticationAuthority} interface.
@@ -155,10 +163,13 @@ public class ShibbolethAuthAuthority
      *                   name on different machines.
      * @param authIdentity the identity obtained from external authentication
      *                     system that will be bound to the user's JID.
+     * @param roomName the name of the conference room.
+     * @param properties the map of Shibboleth attributes/headers to be logged.
      * @return <tt>true</tt> if user has been authenticated successfully or
      *         <tt>false</tt> if given token is invalid.
      */
-    String authenticateUser(String machineUID, String authIdentity)
+    String authenticateUser(String machineUID, String authIdentity,
+                            String roomName,   Map<String, String> properties)
     {
         synchronized (syncRoot)
         {
@@ -167,7 +178,8 @@ public class ShibbolethAuthAuthority
 
             if (session == null)
             {
-                session = createNewSession(machineUID, authIdentity);
+                session = createNewSession(
+                    machineUID, authIdentity, roomName, properties);
             }
 
             return session.getSessionId();
@@ -178,9 +190,10 @@ public class ShibbolethAuthAuthority
      * {@inheritDoc}
      */
     @Override
-    public boolean isUserAuthenticated(String jabberId)
+    public String getSessionForJid(String jabberId)
     {
-        return findSessionForJabberId(jabberId) != null;
+        AuthenticationSession session = findSessionForJabberId(jabberId);
+        return session != null ? session.getSessionId() : null;
     }
 
     /**

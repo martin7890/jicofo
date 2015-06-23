@@ -1,30 +1,39 @@
 /*
  * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.jicofo;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jirecon.*;
-import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
 
+import org.jitsi.jicofo.util.*;
 import org.jitsi.protocol.xmpp.*;
 
 import java.util.*;
 
 /**
- * Class handles discovery of Jitsi Meet application services like bridge,
- * recording, SIP gateway and so on...
+ * Class manages discovered components discovery of Jitsi Meet application
+ * services like bridge, recording, SIP gateway and so on...
  *
  * @author Pawel Domas
  */
 public class JitsiMeetServices
-    implements RegistrationStateChangeListener
 {
     /**
      * The logger
@@ -66,31 +75,16 @@ public class JitsiMeetServices
     /**
      * Features used to recognize pub-sub service.
      */
-    private static final String[] PUBSUB_FEATURES = new String[]
+    /*private static final String[] PUBSUB_FEATURES = new String[]
         {
             "http://jabber.org/protocol/pubsub",
             "http://jabber.org/protocol/pubsub#subscribe"
-        };
+        };*/
 
     /**
-     * Capabilities operation set used to discover services info.
+     * Manages Jitsi Videobridge component XMPP addresses.
      */
-    private OperationSetSimpleCaps capsOpSet;
-
-    /**
-     * XMPP xmppDomain for which we're discovering service info.
-     */
-    private String xmppDomain;
-
-    /**
-     * Videobridge component XMPP address.
-     */
-    private BridgeSelector bridgeSelector;
-
-    /**
-     * The protocol service handler that provides XMPP service.
-     */
-    private ProtocolProviderHandler protocolProviderHandler;
+    private final BridgeSelector bridgeSelector;
 
     /**
      * Jirecon recorder component XMPP address.
@@ -103,120 +97,83 @@ public class JitsiMeetServices
     private String sipGateway;
 
     /**
-     * Starts this instance.
+     * Creates new instance of <tt>JitsiMeetServices</tt>
      *
-     * @param xmppDomain server address/main service XMPP xmppDomain that hosts
-     *                      the conference system.
-     * @param xmppAuthDomain the xmppDomain used for XMPP authentication.
-     * @param xmppUserName the user name used to login.
-     * @param xmppLoginPassword the password used for authentication.
+     * @param operationSet subscription operation set to be used for watching
+     *                     JVB stats sent over pub-sub.
+     */
+    public JitsiMeetServices(OperationSetSubscription operationSet)
+    {
+        this.bridgeSelector = new BridgeSelector(operationSet);
+    }
+
+    /**
+     * Call when new component becomes available.
      *
-     * @throws java.lang.IllegalStateException if started already.
+     * @param node component XMPP address
+     * @param features list of features supported by <tt>node</tt>
      */
-    public void start(String serverAddress,
-                      String xmppDomain,
-                      String xmppAuthDomain,
-                      String xmppUserName,
-                      String xmppLoginPassword)
+    void newNodeDiscovered(String node, List<String> features)
     {
-        if (protocolProviderHandler != null)
+        if (DiscoveryUtil.checkFeatureSupport(VIDEOBRIDGE_FEATURES, features))
         {
-            throw new IllegalStateException("Already started");
+            bridgeSelector.addJvbAddress(node);
         }
-
-        this.xmppDomain = xmppDomain;
-
-        this.protocolProviderHandler
-            = new ProtocolProviderHandler();
-
-        protocolProviderHandler.start(
-            serverAddress, xmppAuthDomain, xmppLoginPassword,
-            xmppUserName, this);
-
-        this.capsOpSet
-            = protocolProviderHandler.getOperationSet(
-                    OperationSetSimpleCaps.class);
-
-        this.bridgeSelector
-            = new BridgeSelector(
-                    protocolProviderHandler
-                        .getProtocolProvider()
-                        .getOperationSet(OperationSetSubscription.class));
-
-        if (protocolProviderHandler.isRegistered())
+        else if (
+            jireconRecorder == null
+                && DiscoveryUtil.checkFeatureSupport(
+                        JIRECON_RECORDER_FEATURES, features))
         {
-            init();
+            logger.info("Discovered Jirecon recorder: " + node);
+
+            setJireconRecorder(node);
         }
-        else
+        else if (sipGateway == null
+            && DiscoveryUtil.checkFeatureSupport(SIP_GW_FEATURES, features))
         {
-            protocolProviderHandler.register();
+            logger.info("Discovered SIP gateway: " + node);
+
+            setSipGateway(node);
         }
+        /*
+        FIXME: pub-sub service auto-detect ?
+        else if (capsOpSet.hasFeatureSupport(item, PUBSUB_FEATURES))
+        {
+            // Potential PUBSUB service
+            logger.info("Potential PUBSUB service:" + item);
+            List<String> subItems = capsOpSet.getItems(item);
+            for (String subItem: subItems)
+            {
+                logger.info("Subnode " + subItem + " of " + item);
+                capsOpSet.hasFeatureSupport(
+                    item, subItem, VIDEOBRIDGE_FEATURES);
+            }
+        }*/
     }
 
     /**
-     * Stops this instance and disposes XMPP connection.
+     * Call when components goes offline.
+     *
+     * @param node XMPP address of disconnected XMPP component.
      */
-    public void stop()
+    void nodeNoLongerAvailable(String node)
     {
-        if (protocolProviderHandler != null)
+        if (bridgeSelector.isJvbOnTheList(node))
         {
-            protocolProviderHandler.stop();
-
-            protocolProviderHandler = null;
+            bridgeSelector.removeJvbAddress(node);
         }
-    }
-
-    /**
-     * Initializes this instance and discovers Jitsi Meet services.
-     */
-    public void init()
-    {
-        List<String> items = capsOpSet.getItems(xmppDomain);
-        for (String item : items)
+        else if (node.equals(jireconRecorder))
         {
-            if (capsOpSet.hasFeatureSupport(item, VIDEOBRIDGE_FEATURES))
-            {
-                logger.info("Discovered videobridge: " + item);
+            logger.warn("Jirecon recorder went offline: " + node);
 
-                bridgeSelector.addJvbAddress(item);
-            }
-            else if (jireconRecorder == null
-                && capsOpSet.hasFeatureSupport(item, JIRECON_RECORDER_FEATURES))
-            {
-                logger.info("Discovered Jirecon recorder: " + item);
-
-                setJireconRecorder(item);
-            }
-            else if (sipGateway == null
-                && capsOpSet.hasFeatureSupport(item, SIP_GW_FEATURES))
-            {
-                logger.info("Discovered SIP gateway: " + item);
-
-                setSipGateway(item);
-            }
-            /*
-            FIXME: pub-sub service auto-detect ?
-            else if (capsOpSet.hasFeatureSupport(item, PUBSUB_FEATURES))
-            {
-                // Potential PUBSUB service
-                logger.info("Potential PUBSUB service:" + item);
-                List<String> subItems = capsOpSet.getItems(item);
-                for (String subItem: subItems)
-                {
-                    logger.info("Subnode " + subItem + " of " + item);
-                    capsOpSet.hasFeatureSupport(
-                        item, subItem, VIDEOBRIDGE_FEATURES);
-                }
-            }*/
+            jireconRecorder = null;
         }
-    }
+        else if (node.equals(sipGateway))
+        {
+            logger.warn("SIP gateway went offline: " + node);
 
-    /**
-     * Returns the XMPP address of videobridge component.
-     */
-    public String getVideobridge()
-    {
-        return bridgeSelector.selectVideobridge();
+            sipGateway = null;
+        }
     }
 
     /**
@@ -262,24 +219,5 @@ public class JitsiMeetServices
     public BridgeSelector getBridgeSelector()
     {
         return bridgeSelector;
-    }
-
-    @Override
-    public void registrationStateChanged(RegistrationStateChangeEvent evt)
-    {
-        //FIXME: do something here (start PBU-SUB)
-        if (RegistrationState.REGISTERED.equals(evt.getNewState()))
-        {
-            init();
-        }
-    }
-
-    /**
-     * Returns capabilities operation set used by this instance to discover
-     * services info.
-     */
-    public OperationSetSimpleCaps getCapsOpSet()
-    {
-        return capsOpSet;
     }
 }

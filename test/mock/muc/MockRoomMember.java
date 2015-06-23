@@ -1,15 +1,29 @@
 /*
- * Jitsi Videobridge, OpenSource video conferencing.
+ * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package mock.muc;
 
 import mock.xmpp.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.globalstatus.*;
+import org.jitsi.jicofo.util.*;
 import org.jitsi.protocol.xmpp.*;
+
+import java.util.*;
 
 /**
  * @author Pawel Domas
@@ -32,22 +46,24 @@ public class MockRoomMember
         this.room = chatRoom;
     }
 
-    public void addBundleSupport()
+    public void setupFeatures(boolean useBundle)
     {
         OperationSetSimpleCaps caps
-            = room.getParentProvider()
+                = room.getParentProvider()
                 .getOperationSet(OperationSetSimpleCaps.class);
 
         MockSetSimpleCapsOpSet mockCaps = (MockSetSimpleCapsOpSet) caps;
 
+        List<String> features = DiscoveryUtil.getDefaultParticipantFeatureSet();
+        if (useBundle)
+        {
+            features.add("urn:ietf:rfc:5761"/* rtcp-mux */);
+            features.add("urn:ietf:rfc:5888"/* bundle */);
+        }
+
         MockCapsNode myNode
             = new MockCapsNode(
-                    address,
-                    new String[]
-                        {
-                            "urn:ietf:rfc:5761"/* rtcp-mux */,
-                            "urn:ietf:rfc:5888"/* bundle */
-                        });
+                address, features.toArray(new String[features.size()]));
 
         mockCaps.addChildNode(myNode);
     }
@@ -121,5 +137,12 @@ public class MockRoomMember
     public String getJabberID()
     {
         return null;
+    }
+
+    @Override
+    public int getJoinOrderNumber()
+    {
+        //FIXME: implement in order to test start muted feature
+        return 0;
     }
 }

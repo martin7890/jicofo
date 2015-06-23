@@ -1,8 +1,19 @@
 /*
  * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.jicofo;
 
@@ -10,6 +21,7 @@ import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
 import net.java.sip.communicator.util.Logger;
 
 import org.jitsi.protocol.xmpp.*;
+import org.jitsi.service.configuration.*;
 import org.jitsi.util.*;
 import org.jitsi.videobridge.stats.*;
 
@@ -51,6 +63,24 @@ public class BridgeSelector
         = "org.jitsi.focus.BRIDGE_PUBSUB_MAPPING";
 
     /**
+     * Configuration property which specifies the amount of time since bridge
+     * instance failure before the selector will give it another try.
+     */
+    public static final String BRIDGE_FAILURE_RESET_THRESHOLD_PNAME
+        = "org.jitsi.focus.BRIDGE_FAILURE_RESET_THRESHOLD";
+
+    /**
+     * Five minutes.
+     */
+    public static final long DEFAULT_FAILURE_RESET_THRESHOLD = 5L * 60L * 1000L;
+
+    /**
+     * The amount of time we will wait after bridge instance failure before it
+     * will get another chance.
+     */
+    private long failureResetThreshold;
+
+    /**
      * Operation set used to subscribe to PubSub nodes notifications.
      */
     private final OperationSetSubscription subscriptionOpSet;
@@ -82,9 +112,9 @@ public class BridgeSelector
     {
         this.subscriptionOpSet = subscriptionOpSet;
 
-        String mappingPropertyValue
-            = FocusBundleActivator.getConfigService()
-                .getString(BRIDGE_TO_PUBSUB_PNAME);
+        ConfigurationService config = FocusBundleActivator.getConfigService();
+
+        String mappingPropertyValue = config.getString(BRIDGE_TO_PUBSUB_PNAME);
 
         if (StringUtils.isNullOrEmpty(mappingPropertyValue))
         {
@@ -101,6 +131,13 @@ public class BridgeSelector
 
             logger.info("Pub-sub mapping: " + pubSubNode + " -> " + bridge);
         }
+
+        setFailureResetThreshold(
+            config.getLong( BRIDGE_FAILURE_RESET_THRESHOLD_PNAME,
+                            DEFAULT_FAILURE_RESET_THRESHOLD));
+
+        logger.info(
+            "Bridge failure reset threshold: " + getFailureResetThreshold());
     }
 
     /**
@@ -112,21 +149,68 @@ public class BridgeSelector
      */
     public void addJvbAddress(String bridgeJid)
     {
+        if (isJvbOnTheList(bridgeJid))
+        {
+            return;
+        }
+
+        logger.info("Added videobridge: " + bridgeJid);
+
         String pubSubNode = findNodeForBridge(bridgeJid);
         if (pubSubNode != null)
         {
+            // FIXME: retry if node is not available yet
             logger.info(
-                "Subscribing to pubsub notfications to "
+                "Subscribing to pub-sub notifications to "
                     + pubSubNode + " for " + bridgeJid);
             subscriptionOpSet.subscribe(pubSubNode, this);
         }
         else
         {
-            logger.warn("No pub-sub node mapped for " + bridgeJid
-                        + " statistics will not be tracked fro this instance.");
+            logger.warn(
+                "No pub-sub node mapped for " + bridgeJid
+                    + " statistics will not be tracked for this instance.");
         }
 
         bridges.put(bridgeJid, new BridgeState(bridgeJid));
+    }
+
+    /**
+     * Returns <tt>true</tt> if given JVB XMPP address is already known to this
+     * <tt>BridgeSelector</tt>.
+     *
+     * @param jvbJid the JVB JID to be checked eg. jitsi-videobridge.example.com
+     *
+     * @return <tt>true</tt> if given JVB XMPP address is already known to this
+     * <tt>BridgeSelector</tt>.
+     */
+    boolean isJvbOnTheList(String jvbJid)
+    {
+        return bridges.containsKey(jvbJid);
+    }
+
+    /**
+     * Removes Jitsi Videobridge XMPP address from the list videobridge
+     * instances available in the system .
+     *
+     * @param bridgeJid the JID of videobridge to be removed from this selector's
+     *                  set of videobridges.
+     */
+    public void removeJvbAddress(String bridgeJid)
+    {
+        logger.info("Removing JVB: " + bridgeJid);
+
+        bridges.remove(bridgeJid);
+
+        String pubSubNode = findNodeForBridge(bridgeJid);
+        if (pubSubNode != null)
+        {
+            logger.info(
+                "Removing PubSub subscription to "
+                    + pubSubNode + " for " + bridgeJid);
+
+            subscriptionOpSet.unSubscribe(pubSubNode);
+        }
     }
 
     /**
@@ -139,28 +223,8 @@ public class BridgeSelector
      */
     public String selectVideobridge()
     {
-        // FIXME: Consider caching elected bridge and reset on stats
-        // or is operational change
-        if (bridges.size() == 0)
-        {
-            // No bridges registered
-            return null;
-        }
-
-        // Elect best bridge
-        Iterator<BridgeState> bridgesIter = bridges.values().iterator();
-
-        BridgeState bestChoice = bridgesIter.next();
-        while (bridgesIter.hasNext())
-        {
-            BridgeState candidate = bridgesIter.next();
-            if (candidate.compareTo(bestChoice) < 0)
-            {
-                bestChoice = candidate;
-            }
-        }
-
-        return bestChoice.isOperational ? bestChoice.jid : null;
+        List<String> bridges = getPrioritizedBridgesList();
+        return bridges.size() > 0 ? bridges.get(0) : null;
     }
 
     /**
@@ -179,7 +243,7 @@ public class BridgeSelector
         for (BridgeState bridgeState : bridgeList)
         {
             bridgeJidList.add(bridgeState.jid);
-            if (bridgeState.isOperational)
+            if (bridgeState.isOperational())
             {
                 isAnyBridgeUp = true;
             }
@@ -351,6 +415,28 @@ public class BridgeSelector
     }
 
     /**
+     * The time since last bridge failure we will wait before it gets another
+     * chance.
+     *
+     * @return failure reset threshold in millis.
+     */
+    public long getFailureResetThreshold()
+    {
+        return failureResetThreshold;
+    }
+
+    /**
+     * Sets the amount of time we will wait after bridge failure before it will
+     * get another chance.
+     *
+     * @param failureResetThreshold the amount of time in millis.
+     */
+    public void setFailureResetThreshold(long failureResetThreshold)
+    {
+        this.failureResetThreshold = failureResetThreshold;
+    }
+
+    /**
      * Class holds videobridge state and implements {@link java.lang.Comparable}
      * interface to find least loaded bridge.
      */
@@ -374,6 +460,11 @@ public class BridgeSelector
          * back to *operational* state.
          */
         private boolean isOperational = true /* we assume it is operational */;
+
+        /**
+         * The time when this instance has failed.
+         */
+        private long failureTimestamp;
 
         BridgeState(String bridgeJid)
         {
@@ -401,6 +492,39 @@ public class BridgeSelector
         public void setIsOperational(boolean isOperational)
         {
             this.isOperational = isOperational;
+
+            if (!isOperational)
+            {
+                // Remember when the bridge has failed
+                failureTimestamp = System.currentTimeMillis();
+            }
+        }
+
+        public boolean isOperational()
+        {
+            // Check if we should give this bridge another try
+            verifyFailureThreshold();
+
+            return isOperational;
+        }
+
+        /**
+         * Verifies if it has been long enough since last bridge failure to give
+         * it another try(reset isOperational flag).
+         */
+        private void verifyFailureThreshold()
+        {
+            if (isOperational)
+            {
+                return;
+            }
+
+            if (System.currentTimeMillis() - failureTimestamp
+                    > getFailureResetThreshold())
+            {
+                logger.info("Resetting operational status for " + jid);
+                isOperational = true;
+            }
         }
 
         /**
@@ -411,9 +535,12 @@ public class BridgeSelector
         @Override
         public int compareTo(BridgeState o)
         {
-            if (this.isOperational && !o.isOperational)
+            boolean meOperational = isOperational();
+            boolean otherOperational = o.isOperational();
+
+            if (meOperational && !otherOperational)
                 return -1;
-            else if (!this.isOperational && o.isOperational)
+            else if (!meOperational && otherOperational)
                 return 1;
 
             return conferenceCount - o.conferenceCount;

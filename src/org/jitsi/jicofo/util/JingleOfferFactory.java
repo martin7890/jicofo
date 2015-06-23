@@ -1,8 +1,19 @@
 /*
  * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.jicofo.util;
 
@@ -27,17 +38,17 @@ public class JingleOfferFactory
      * included in initial conference offer.
      *
      * @param mediaType the media type for which new offer content will
-     *                  be created.
-     * @param enableFirefoxHacks pass <tt>true</tt> if created offer should be
-     *                           compatible with Firefox client.
+     * be created.
      * @param disableIce pass <tt>true</tt> if RAW transport instead of ICE
-     *                   should be indicated in the offer.
+     * should be indicated in the offer.
+     * @param useDtls whether to add a DTLS element under the transport
+     * elements in the offer.
      *
      * @return <tt>ContentPacketExtension</tt> for given media type that will be
      *         used in initial conference offer.
      */
     public static ContentPacketExtension createContentForMedia(
-            MediaType mediaType, boolean enableFirefoxHacks, boolean disableIce)
+            MediaType mediaType, boolean disableIce, boolean useDtls)
     {
         ContentPacketExtension content
             = new ContentPacketExtension(
@@ -174,13 +185,15 @@ public class JingleOfferFactory
             RtcpFbPacketExtension nack = new RtcpFbPacketExtension();
             nack.setFeedbackType("nack");
             vp8.addRtcpFeedbackType(nack);
-            if (!enableFirefoxHacks)
-            {
-                // a=rtcp-fb:100 goog-remb
-                RtcpFbPacketExtension remb = new RtcpFbPacketExtension();
-                remb.setFeedbackType("goog-remb");
-                vp8.addRtcpFeedbackType(remb);
-            }
+            // a=rtcp-fb:100 nack pli
+            RtcpFbPacketExtension nackPli = new RtcpFbPacketExtension();
+            nackPli.setFeedbackType("nack");
+            nackPli.setFeedbackSubtype("pli");
+            vp8.addRtcpFeedbackType(nackPli);
+            // a=rtcp-fb:100 goog-remb
+            RtcpFbPacketExtension remb = new RtcpFbPacketExtension();
+            remb.setFeedbackType("goog-remb");
+            vp8.addRtcpFeedbackType(remb);
             // a=rtpmap:116 red/90000
             PayloadTypePacketExtension red
                 = new PayloadTypePacketExtension();
@@ -220,7 +233,13 @@ public class JingleOfferFactory
 
         if (!disableIce)
         {
-            content.addChildExtension(new IceUdpTransportPacketExtension());
+            IceUdpTransportPacketExtension iceUdpTransportPacketExtension
+                    = new IceUdpTransportPacketExtension();
+            if (useDtls)
+                iceUdpTransportPacketExtension
+                        .addChildExtension(new DtlsFingerprintPacketExtension());
+
+            content.addChildExtension(iceUdpTransportPacketExtension);
         }
         else
         {

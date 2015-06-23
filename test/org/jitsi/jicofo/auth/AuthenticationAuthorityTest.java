@@ -1,8 +1,19 @@
 /*
  * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.jicofo.auth;
 
@@ -100,7 +111,7 @@ public class AuthenticationAuthorityTest
         // create session-id
         String user1Session
             = shibbolethAuth.authenticateUser
-                (user1MachineUid, user1ShibbolethIdentity);
+                (user1MachineUid, user1ShibbolethIdentity, room1, null);
 
         query.setSessionId(user1Session);
 
@@ -141,7 +152,7 @@ public class AuthenticationAuthorityTest
         roomExists = true;
         String user2Session
             = shibbolethAuth.authenticateUser(
-                    user2MachineUid, user2ShibbolethIdentity);
+                    user2MachineUid, user2ShibbolethIdentity, room1, null);
 
         query.setSessionId(user2Session);
         query.setFrom(user2Jid);
@@ -185,7 +196,8 @@ public class AuthenticationAuthorityTest
         String user3Session
             = shibbolethAuth.authenticateUser(
                     user3machineUID,
-                    user1ShibbolethIdentity);
+                    user1ShibbolethIdentity,
+                    room1, null);
 
         assertNotNull(user3Session);
         assertNotEquals(user1Session, user3Session);

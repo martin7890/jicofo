@@ -1,13 +1,23 @@
 /*
  * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.jicofo.auth;
 
 import net.java.sip.communicator.util.Logger;
-
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.*;
 
@@ -103,6 +113,29 @@ class ShibbolethHandler
         }
     }
 
+    private Map<String, String> createPropertiesMap(HttpServletRequest request)
+    {
+        HashMap<String, String> propertiesMap = new HashMap<String, String>();
+
+        Enumeration<String> headers = request.getHeaderNames();
+        while (headers.hasMoreElements())
+        {
+            String headerName = headers.nextElement();
+            propertiesMap.put(headerName, request.getHeader(headerName));
+        }
+
+        Enumeration<String> attributes = request.getAttributeNames();
+        while (attributes.hasMoreElements())
+        {
+            String attributeName = attributes.nextElement();
+            propertiesMap.put(
+                attributeName,
+                String.valueOf(request.getAttribute(attributeName)));
+        }
+
+        return propertiesMap;
+    }
+
     /**
      * Retrieves Shibboleth attribute value for given name. In case of
      * Apache+Shibboleth deployment attributes are retrieved with
@@ -148,6 +181,7 @@ class ShibbolethHandler
             return;
         }
         // Extract room name from MUC address
+        String fullRoom = room;
         room = MucUtil.extractName(room);
 
         String machineUID = request.getParameter("machineUID");
@@ -171,7 +205,9 @@ class ShibbolethHandler
 
         // User authenticated
         String sessionId
-            = shibbolethAuthAuthority.authenticateUser(machineUID, email);
+            = shibbolethAuthAuthority.authenticateUser(
+                    machineUID, email, fullRoom, createPropertiesMap(request));
+
         if (sessionId == null)
         {
             response.sendError(

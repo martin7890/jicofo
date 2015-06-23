@@ -1,8 +1,19 @@
 /*
  * Jicofo, the Jitsi Conference Focus.
  *
- * Distributable under LGPL license.
- * See terms of license at gnu.org.
+ * Copyright @ 2015 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jitsi.impl.protocol.xmpp;
 
@@ -32,7 +43,15 @@ public class ChatMemberImpl
      */
     private final String nickname;
 
+    /**
+     * The chat room of the member.
+     */
     private final ChatRoomImpl chatRoom;
+
+    /**
+     * Join order number
+     */
+    private final int joinOrderNumber;
 
     /**
      * Full MUC address:
@@ -42,11 +61,13 @@ public class ChatMemberImpl
 
     private ChatRoomMemberRole role;
 
-    public ChatMemberImpl(String participant, ChatRoomImpl chatRoom)
+    public ChatMemberImpl(String participant, ChatRoomImpl chatRoom,
+        int joinOrderNumber)
     {
         this.address = participant;
         this.nickname = participant.substring(participant.lastIndexOf("/")+1);
         this.chatRoom = chatRoom;
+        this.joinOrderNumber = joinOrderNumber;
     }
 
     @Override
@@ -126,5 +147,11 @@ public class ChatMemberImpl
     public String getJabberID()
     {
         return chatRoom.getMemberJid(address);
+    }
+
+    @Override
+    public int getJoinOrderNumber()
+    {
+        return joinOrderNumber;
     }
 }
