@@ -670,10 +670,10 @@ public class JitsiMeetConference
                         + peer.getChatMember().getContactAddress());
 
                 ColibriConferenceIQ peerChannels
-                    = colibriConference.createColibriChannels(
-                            peer.hasBundleSupport(),
-                            peer.getEndpointId(),
-                            true, contents);
+                = colibriConference.createColibriChannels(
+                        peer.hasBundleSupport(),
+                        peer.getEndpointId(),getRoomName(),
+                        true, contents);
 
                 bridgeSelector.updateBridgeOperationalStatus(
                     colibriConference.getJitsiVideobridge(), true);

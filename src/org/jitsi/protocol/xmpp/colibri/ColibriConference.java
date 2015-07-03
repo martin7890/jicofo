@@ -92,7 +92,7 @@ public interface ColibriConference
      */
     ColibriConferenceIQ createColibriChannels(
         boolean useBundle,
-        String endpointName,
+        String endpointName,String roomName,
         boolean peerIsInitiator,
         List<ContentPacketExtension> contents)
         throws OperationFailedException;

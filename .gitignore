@@ -2,3 +2,4 @@ classes
 jicofo.jar
 *.class
 *.swp
+/bin/

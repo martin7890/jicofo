@@ -29,7 +29,6 @@ import org.jitsi.protocol.xmpp.colibri.*;
 import org.jitsi.protocol.xmpp.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-
 import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
@@ -134,7 +133,7 @@ public class ColibriConferenceImpl
     @Override
     public synchronized ColibriConferenceIQ createColibriChannels(
             boolean useBundle,
-            String endpointName,
+            String endpointName,String roomName,
             boolean peerIsInitiator,
             List<ContentPacketExtension> contents)
         throws OperationFailedException
@@ -142,7 +141,7 @@ public class ColibriConferenceImpl
         colibriBuilder.reset();
 
         colibriBuilder.addAllocateChannelsReq(
-            useBundle, endpointName, peerIsInitiator, contents);
+                useBundle, endpointName,roomName, peerIsInitiator, contents);
 
         ColibriConferenceIQ allocateRequest
             = colibriBuilder.getRequest(jitsiVideobridge);
