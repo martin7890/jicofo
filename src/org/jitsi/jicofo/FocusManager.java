@@ -278,9 +278,21 @@ public class FocusManager
 
         }
 
-        logger.info("Created new focus for " + room + "@" + focusUserDomain
+       /* logger.info("Created new focus for " + room + "@" + focusUserDomain
                         + " conferences count: " + conferences.size()
-                        + " options:" + options.toString());
+                        + " options:" + options.toString());*/
+        
+
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:"
+        			+room + ", RoutingID :" +null +", Message:"+
+        			  "Created new focus for " + room + "@" + focusUserDomain
+        			 + " conferences count: " + conferences.size()
+        			 + " options:" + options.toString());
+
+        
+        
+        
+        
 
         // Send focus created event
         EventAdmin eventAdmin = FocusBundleActivator.getEventAdmin();
@@ -334,10 +346,13 @@ public class FocusManager
 
         conferences.remove(roomName);
 
-        logger.info(
+      /*  logger.info(
             "Disposed conference for room: " + roomName
-            + " conference count: " + conferences.size());
+            + " conference count: " + conferences.size());*/
 
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +null +", Message:"+" Disposed conference for room: " + roomName
+                + " conference count: " + conferences.size());
+        
         if (focusAllocListener != null)
         {
             focusAllocListener.onFocusDestroyed(roomName);

@@ -6,7 +6,7 @@ set -e
 case "$1" in
     configure)
 
-        CONFIG="/etc/jitsi/jicofo/config"
+        CONFIG="/etc/jitsi/jicofo/config.default"
 
         # we don't want to regenerate config on upgrade
         OLDCONFIG="false"
@@ -26,12 +26,12 @@ case "$1" in
 
             JICOFO_HOSTNAME="$JVB_HOSTNAME"
             # 8-chars random secret, alternative to pwgen 8
-            JICOFO_SECRET=`head -c 8 /dev/urandom | tr '\0-\377' 'a-zA-Z0-9a-zA-Z0-9a-zA-Z0-9a-zA-Z0-9@@@@####'`
+            JICOFO_SECRET="Xtjn@I1#"
             JICOFO_PORT=5347
             JICOFO_AUTH_DOMAIN="auth.$JICOFO_HOSTNAME"
-            JICOFO_AUTH_USER="focus"
-            JICOFO_AUTH_PASSWORD=`head -c 8 /dev/urandom | tr '\0-\377' 'a-zA-Z0-9a-zA-Z0-9a-zA-Z0-9a-zA-Z0-9@@@@####'`
-
+            JICOFO_AUTH_USER="xrtc_sp00f_f0cus"
+            JICOFO_AUTH_PASSWORD="xrtc_sp00f_f0cus"
+            JICOFO_SUBDOMAIN=focus.example.com
             # storing default
             echo '# Jitsi Conference Focus settings' > $CONFIG
             echo "JICOFO_HOST=localhost" >> $CONFIG
@@ -39,6 +39,7 @@ case "$1" in
             echo "JICOFO_SECRET=$JICOFO_SECRET" >> $CONFIG
             echo "JICOFO_PORT=$JICOFO_PORT" >> $CONFIG
             echo "JICOFO_AUTH_DOMAIN=$JICOFO_AUTH_DOMAIN" >> $CONFIG
+            echo "JICOFO_SUBDOMAIN=\"\"" >> $CONFIG
             echo "JICOFO_AUTH_USER=$JICOFO_AUTH_USER" >> $CONFIG
             echo "JICOFO_AUTH_PASSWORD=$JICOFO_AUTH_PASSWORD" >> $CONFIG
             echo "JICOFO_OPTS=\"\"" >> $CONFIG

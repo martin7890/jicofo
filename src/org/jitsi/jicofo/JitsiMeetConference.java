@@ -289,8 +289,8 @@ public class JitsiMeetConference
     private void joinTheRoom()
         throws Exception
     {
-        logger.info("Joining the room: " + roomName);
-
+        //logger.info("Joining the room: " + roomName);
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +null +", Message:"+"Joining the room: " + roomName);
         chatRoom = chatOpSet.findRoom(roomName);
 
         rolesAndPresence = new ChatRoomRoleAndPresence(this, chatRoom);
@@ -383,9 +383,14 @@ public class JitsiMeetConference
      */
     protected void onMemberJoined(final ChatRoomMember chatRoomMember)
     {
-        logger.info(
-            "Member " + chatRoomMember.getContactAddress() + " joined.");
-
+        /*logger.info(
+            "Member " + chatRoomMember.getContactAddress() + " joined.");*/
+    	
+    	String endpoint = chatRoomMember.getContactAddress().split("/")[1];
+    	
+    	logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint+ ", Message:"+" Member " + chatRoomMember.getContactAddress() + " joined.");
+    	
+    	
         if (!isFocusMember(chatRoomMember))
         {
             idleTimestamp = -1;
@@ -449,7 +454,14 @@ public class JitsiMeetConference
 
         participants.add(newParticipant);
 
-        logger.info("Added participant for: " + address);
+        //logger.info("Added participant for: " + address);
+        
+        String endpoint = address.split("/")[1];
+       
+        
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+"  Added participant for: " + address);
+        
+        
 
         // Invite peer takes time because of channel allocation, so schedule
         // this on separate thread.
@@ -549,9 +561,12 @@ public class JitsiMeetConference
 
         newParticipant.setSupportedFeatures(features);
 
-        logger.info(
-            address + " has bundle ? " + newParticipant.hasBundleSupport());
-
+        /*logger.info(
+            address + " has bundle ? " + newParticipant.hasBundleSupport());*/
+        String endpoint = address.split("/")[1];
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+address + " has bundle ? " + newParticipant.hasBundleSupport());
+        
+        
         // Store instance here as it is set to null when conference is disposed
         ColibriConference conference = this.colibriConference;
         List<ContentPacketExtension> offer;
@@ -664,10 +679,20 @@ public class JitsiMeetConference
         {
             try
             {
-                logger.info(
+                /*logger.info(
                     "Using " + colibriConference.getJitsiVideobridge()
                         + " to allocate channels for: "
-                        + peer.getChatMember().getContactAddress());
+                        + peer.getChatMember().getContactAddress());*/
+            	
+            	String endpoint = peer.getChatMember().getContactAddress().split("/")[1];
+            	
+            	logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+"Using " + colibriConference.getJitsiVideobridge()
+                        + " to allocate channels for: "
+                        + peer.getChatMember().getContactAddress() );
+
+            	
+            	
+            	
 
                 ColibriConferenceIQ peerChannels
                 = colibriConference.createColibriChannels(
@@ -1114,8 +1139,12 @@ public class JitsiMeetConference
     {
         String contactAddress = chatRoomMember.getContactAddress();
 
-        logger.info("Member " + contactAddress + " is leaving");
+        //logger.info("Member " + contactAddress + " is leaving");
+        
+        String endpoint = contactAddress.split("/")[1];
 
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+" Member " + contactAddress + " is leaving");
+        
         Participant leftPeer = findParticipantForChatMember(chatRoomMember);
         if (leftPeer != null)
         {
@@ -1299,8 +1328,12 @@ public class JitsiMeetConference
             participant.getSSRCGroupsCopy(),
             participant.getColibriChannelsInfo());
 
-        logger.info("Got SSRCs from " + peerJingleSession.getAddress());
-
+        //logger.info("Got SSRCs from " + peerJingleSession.getAddress());
+        
+        String endpoint = peerJingleSession.getAddress().split("/")[1];
+        
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+" Got SSRCs from " + peerJingleSession.getAddress());
+        
         for (Participant peerToNotify : participants)
         {
             JingleSession jingleSessionToNotify
@@ -1593,8 +1626,12 @@ public class JitsiMeetConference
             sourcePeer.getSSRCGroupsCopy(),
             sourcePeer.getColibriChannelsInfo());
 
-        logger.info("Remove SSRC " + sourceJingleSession.getAddress());
-
+        //logger.info("Remove SSRC " + sourceJingleSession.getAddress());
+        
+        String endpoint = sourceJingleSession.getAddress().split("/")[1];
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+" Remove SSRC " + sourceJingleSession.getAddress());
+        
+        
         for (Participant peer : participants)
         {
             if (peer == sourcePeer)

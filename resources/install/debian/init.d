@@ -24,6 +24,7 @@ if [ ! $JICOFO_HOST ]; then
     JICOFO_HOST=localhost
 fi
 
+
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/share/jicofo/jicofo.sh
 DEAMON_DIR=/usr/share/jicofo/
@@ -32,7 +33,12 @@ USER=jicofo
 PIDFILE=/var/run/jicofo.pid
 LOGFILE=/var/log/jitsi/jicofo.log
 DESC=jicofo
-DAEMON_OPTS=" --host=$JICOFO_HOST --domain=$JICOFO_HOSTNAME --port=$JICOFO_PORT --secret=$JICOFO_SECRET --user_domain=$JICOFO_AUTH_DOMAIN --user_password=$JICOFO_AUTH_PASSWORD $JICOFO_OPTS"
+
+if test -z "$JICOFO_SUBDOMAIN"; then
+DAEMON_OPTS=" --host=$JICOFO_HOST --domain=$JICOFO_HOSTNAME --port=$JICOFO_PORT --secret=$JICOFO_SECRET --user_domain=$JICOFO_AUTH_DOMAIN --user_name=xrtc_sp00f_f0cus --user_password=$JICOFO_AUTH_PASSWORD $JICOFO_OPTS"
+else
+DAEMON_OPTS=" --host=$JICOFO_HOST --domain=$JICOFO_HOSTNAME --port=$JICOFO_PORT --secret=$JICOFO_SECRET --subdomain=$JICOFO_SUBDOMAIN --user_domain=$JICOFO_AUTH_DOMAIN --user_name=xrtc_sp00f_f0cus --user_password=$JICOFO_AUTH_PASSWORD $JICOFO_OPTS"
+fi
 
 test -x $DAEMON || exit 0
 

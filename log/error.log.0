@@ -1,0 +1,316 @@
+2015-06-03 15:35:35.546 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 12:32:49.594 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 14:04:24.744 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 14:04:58.166 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for funnycheetahspiercefiercely@conference.localhost/8bb5f5c9
+2015-06-09 14:04:59.141 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for funnycheetahspiercefiercely@conference.localhost/738365fe
+2015-06-09 15:54:09.967 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for shadyreptilesreckonexactly@conference.localhost/f9426282
+2015-06-09 15:54:10.348 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for shadyreptilesreckonexactly@conference.localhost/716576fa
+2015-06-09 16:14:13.984 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for disguiseddogssmokeimpartially@conference.localhost/d7888ccd
+2015-06-09 16:14:14.457 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for disguiseddogssmokeimpartially@conference.localhost/0d528ba3
+2015-06-09 16:14:43.144 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for apparentdogscodeseldom@conference.localhost/c9391c75
+2015-06-09 16:14:44.241 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for apparentdogscodeseldom@conference.localhost/15dcd70b
+2015-06-09 16:14:54.698 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for uneasytigersmergescornfully@conference.localhost/c84f0ec8
+2015-06-09 16:14:55.927 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for uneasytigersmergescornfully@conference.localhost/9788783e
+2015-06-09 16:15:45.849 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for desperatehipposmoverarely@conference.localhost/357226c0
+2015-06-09 16:15:53.612 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for desperatehipposmoverarely@conference.localhost/978717b9
+2015-06-09 16:45:36.155 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for desperatehipposmoverarely@conference.localhost/99ea8e15
+2015-06-09 16:45:36.537 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for desperatehipposmoverarely@conference.localhost/564037a5
+2015-06-09 16:45:58.319 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 16:46:05.437 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for indifferentpotatoesplaycrazily@conference.localhost/09144ef8
+2015-06-09 16:46:07.040 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for indifferentpotatoesplaycrazily@conference.localhost/de4371d9
+2015-06-09 17:13:16.393 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:14:00.571 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for flawedteachersreadstrangely@conference.localhost/50549b17
+2015-06-09 17:14:02.065 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for flawedteachersreadstrangely@conference.localhost/5473f877
+2015-06-09 17:14:31.655 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for ignoranttigersestimateprecisely@conference.localhost/843c9833
+2015-06-09 17:14:33.183 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for ignoranttigersestimateprecisely@conference.localhost/16962457
+2015-06-09 17:16:39.767 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:16:39.768 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:16:39.924 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:16:54.932 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for powerfulcheetahsextinguishsteadily@conference.localhost/aba2eece
+2015-06-09 17:16:57.092 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for powerfulcheetahsextinguishsteadily@conference.localhost/d759d957
+2015-06-09 17:24:17.409 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:24:17.596 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:24:27.412 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for cynicalbearsbreathemiserably@conference.localhost/9bd342a6
+2015-06-09 17:24:29.422 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for cynicalbearsbreathemiserably@conference.localhost/90b71439
+2015-06-09 17:35:09.159 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:35:09.171 SEVERE: [73] org.jitsi.jicofo.JitsiMeetConference.allocateChannels().726 Failed to allocate channels using bridge: jitsi-videobridge.localhost
+net.java.sip.communicator.service.protocol.OperationFailedException: Failed to allocate colibri channels: service-unavailable(-1) Component unavailable
+	at org.jitsi.impl.protocol.xmpp.colibri.ColibriConferenceImpl.createColibriChannels(ColibriConferenceImpl.java:163)
+	at org.jitsi.jicofo.JitsiMeetConference.allocateChannels(JitsiMeetConference.java:698)
+	at org.jitsi.jicofo.JitsiMeetConference.createOffer(JitsiMeetConference.java:818)
+	at org.jitsi.jicofo.JitsiMeetConference.discoverFeaturesAndInvite(JitsiMeetConference.java:576)
+	at org.jitsi.jicofo.JitsiMeetConference.access$000(JitsiMeetConference.java:57)
+	at org.jitsi.jicofo.JitsiMeetConference$1.run(JitsiMeetConference.java:475)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	at java.lang.Thread.run(Thread.java:745)
+2015-06-09 17:35:09.173 SEVERE: [73] org.jitsi.jicofo.JitsiMeetConference.discoverFeaturesAndInvite().586 Failed to allocate channels for humoroustomatoesfacilitatearticulately@conference.localhost/02117d46
+net.java.sip.communicator.service.protocol.OperationFailedException: Failed to allocate channels - all bridges are faulty
+	at org.jitsi.jicofo.JitsiMeetConference.allocateChannels(JitsiMeetConference.java:759)
+	at org.jitsi.jicofo.JitsiMeetConference.createOffer(JitsiMeetConference.java:818)
+	at org.jitsi.jicofo.JitsiMeetConference.discoverFeaturesAndInvite(JitsiMeetConference.java:576)
+	at org.jitsi.jicofo.JitsiMeetConference.access$000(JitsiMeetConference.java:57)
+	at org.jitsi.jicofo.JitsiMeetConference$1.run(JitsiMeetConference.java:475)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	at java.lang.Thread.run(Thread.java:745)
+2015-06-09 17:35:09.309 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:35:09.444 SEVERE: [72] org.jitsi.jicofo.JitsiMeetConference.allocateChannels().726 Failed to allocate channels using bridge: jitsi-videobridge.localhost
+net.java.sip.communicator.service.protocol.OperationFailedException: Failed to allocate colibri channels: service-unavailable(-1) Component unavailable
+	at org.jitsi.impl.protocol.xmpp.colibri.ColibriConferenceImpl.createColibriChannels(ColibriConferenceImpl.java:163)
+	at org.jitsi.jicofo.JitsiMeetConference.allocateChannels(JitsiMeetConference.java:698)
+	at org.jitsi.jicofo.JitsiMeetConference.createOffer(JitsiMeetConference.java:818)
+	at org.jitsi.jicofo.JitsiMeetConference.discoverFeaturesAndInvite(JitsiMeetConference.java:576)
+	at org.jitsi.jicofo.JitsiMeetConference.access$000(JitsiMeetConference.java:57)
+	at org.jitsi.jicofo.JitsiMeetConference$1.run(JitsiMeetConference.java:475)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	at java.lang.Thread.run(Thread.java:745)
+2015-06-09 17:35:09.445 SEVERE: [72] org.jitsi.jicofo.JitsiMeetConference.discoverFeaturesAndInvite().586 Failed to allocate channels for humoroustomatoesfacilitatearticulately@conference.localhost/777ec52a
+net.java.sip.communicator.service.protocol.OperationFailedException: Failed to allocate channels - all bridges are faulty
+	at org.jitsi.jicofo.JitsiMeetConference.allocateChannels(JitsiMeetConference.java:759)
+	at org.jitsi.jicofo.JitsiMeetConference.createOffer(JitsiMeetConference.java:818)
+	at org.jitsi.jicofo.JitsiMeetConference.discoverFeaturesAndInvite(JitsiMeetConference.java:576)
+	at org.jitsi.jicofo.JitsiMeetConference.access$000(JitsiMeetConference.java:57)
+	at org.jitsi.jicofo.JitsiMeetConference$1.run(JitsiMeetConference.java:475)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	at java.lang.Thread.run(Thread.java:745)
+2015-06-09 17:35:19.570 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:35:34.848 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:35:35.035 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:36:25.079 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for screamingpigeonsproclaimhumbly@conference.localhost/88b56731
+2015-06-09 17:36:25.836 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for screamingpigeonsproclaimhumbly@conference.localhost/e7ed4570
+2015-06-09 17:36:39.510 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:36:39.724 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:36:51.098 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for bluebonobosintersectweekly@conference.localhost/eba64cf3
+2015-06-09 17:36:51.668 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for bluebonobosintersectweekly@conference.localhost/e8b1811c
+2015-06-09 17:37:14.459 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:37:14.654 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:37:31.417 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for seriousoctopodesglowdesperately@conference.localhost/d4adbd61
+2015-06-09 17:37:33.301 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for seriousoctopodesglowdesperately@conference.localhost/1c9cd98c
+2015-06-09 17:41:45.364 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:41:45.538 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 17:56:52.330 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for politecreatureshideferociously@conference.localhost/c7d5a285
+2015-06-09 17:56:53.892 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for politecreatureshideferociously@conference.localhost/6fcdc0f9
+2015-06-09 18:09:58.863 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for scornfulseagullsfollowcorrectly@conference.localhost/545b698a
+2015-06-09 18:10:08.863 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 19:07:16.004 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for babygoatsfailseriously@conference.localhost/63c7166f
+2015-06-09 19:07:17.025 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for babygoatsfailseriously@conference.localhost/cb2802c3
+2015-06-09 19:21:49.665 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 19:22:08.413 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for creepypigsemancipateoften@conference.localhost/7dd1c5ef
+2015-06-09 19:22:09.877 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for creepypigsemancipateoften@conference.localhost/7dff2467
+2015-06-09 19:22:43.530 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-09 19:23:04.733 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for precisedonkeysterminateabsently@conference.localhost/89dbf1e3
+2015-06-09 19:23:06.732 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for precisedonkeysterminateabsently@conference.localhost/60582465
+2015-06-10 10:54:13.242 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-10 10:54:55.533 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for test1234@conference.localhost/733a54f5
+2015-06-10 10:54:56.098 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for test1234@conference.localhost/d3c84538
+2015-06-10 10:57:27.750 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-10 10:57:54.207 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for hardhipposshareshakily@conference.localhost/d8cad6a1
+2015-06-10 10:58:00.933 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for hardhipposshareshakily@conference.localhost/7da169a3
+2015-06-10 11:23:47.214 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-10 11:24:10.491 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for poisonouspantsblushcalmly@conference.localhost/cf611f17
+2015-06-10 11:24:12.398 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for poisonouspantsblushcalmly@conference.localhost/41758f0c
+2015-06-10 14:03:04.163 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-10 14:03:04.306 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-10 14:03:17.892 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for wildpigeonsrhymehastily@conference.localhost/d075036f
+2015-06-10 14:03:22.059 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for wildpigeonsrhymehastily@conference.localhost/9d19a610
+2015-06-10 14:03:35.485 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for wildpigeonsrhymehastily@conference.localhost/71dfbc1a
+2015-06-10 14:03:48.747 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for wildpigeonsrhymehastily@conference.localhost/1ec9dcc6
+2015-06-10 14:05:05.028 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for wildpigeonsrhymehastily@conference.localhost/e7100d85
+2015-06-10 14:09:13.200 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for wildpigeonsrhymehastily@conference.localhost/6e431173
+2015-06-10 14:09:13.726 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for wildpigeonsrhymehastily@conference.localhost/15b99d92
+2015-06-10 14:09:39.492 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-10 14:33:19.327 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for smoothgorillasproclaimrudely@conference.localhost/69f62c61
+2015-06-10 14:33:20.062 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for smoothgorillasproclaimrudely@conference.localhost/51ac642c
+2015-06-10 15:31:53.338 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for mischievouspeopleblossomrapidly@conference.localhost/de994a29
+2015-06-10 15:32:01.462 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-10 15:32:01.621 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-10 15:35:43.748 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for immensegorillasgatherwisely@conference.localhost/jirecon
+2015-06-10 15:40:04.123 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for immensegorillasgatherwisely@conference.localhost/3fd98dbb
+2015-06-10 15:47:39.717 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for immensegorillasgatherwisely@conference.localhost/a02d83e1
+2015-06-10 15:48:03.263 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-10 15:49:42.822 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for test123@conference.localhost/jirecon
+2015-06-10 15:52:44.123 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for test123@conference.localhost/5ba12cf0
+2015-06-10 15:52:44.615 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for test123@conference.localhost/a8974e38
+2015-06-10 15:52:59.065 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-10 16:17:53.595 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for tactfulwitchescleanregularly@conference.localhost/jirecon
+2015-06-13 10:31:35.978 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-13 10:31:36.129 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-13 10:31:40.979 SEVERE: [36] org.jitsi.jicofo.util.DiscoveryUtil.discoverParticipantFeatures().101 Failed to discover features for simplecowsinvestigateferociously@conference.localhost/e96d70f0 assuming default feature set.
+2015-06-13 10:31:40.981 SEVERE: [37] org.jitsi.jicofo.util.DiscoveryUtil.discoverParticipantFeatures().101 Failed to discover features for simplecowsinvestigateferociously@conference.localhost/775b142f assuming default feature set.
+2015-06-13 10:32:03.717 SEVERE: [37] org.jitsi.protocol.xmpp.AbstractOperationSetJingle.initiateSession().153 Timeout waiting for session-accept from simplecowsinvestigateferociously@conference.localhost/775b142f
+2015-06-13 10:32:04.157 SEVERE: [36] org.jitsi.protocol.xmpp.AbstractOperationSetJingle.initiateSession().153 Timeout waiting for session-accept from simplecowsinvestigateferociously@conference.localhost/e96d70f0
+2015-06-13 10:32:11.025 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for simplecowsinvestigateferociously@conference.localhost/e96d70f0
+2015-06-13 10:32:12.921 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for simplecowsinvestigateferociously@conference.localhost/775b142f
+2015-06-13 10:32:30.157 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-13 10:32:30.310 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-13 10:32:35.157 SEVERE: [50] org.jitsi.jicofo.util.DiscoveryUtil.discoverParticipantFeatures().101 Failed to discover features for obviouswolvessearchtenderly@conference.localhost/79da8165 assuming default feature set.
+2015-06-13 10:32:35.162 SEVERE: [51] org.jitsi.jicofo.util.DiscoveryUtil.discoverParticipantFeatures().101 Failed to discover features for obviouswolvessearchtenderly@conference.localhost/9ac41ecc assuming default feature set.
+2015-06-13 10:32:42.717 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for obviouswolvessearchtenderly@conference.localhost/79da8165
+2015-06-13 10:32:45.106 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for obviouswolvessearchtenderly@conference.localhost/9ac41ecc
+2015-06-13 10:32:55.437 SEVERE: [50] org.jitsi.protocol.xmpp.AbstractOperationSetJingle.initiateSession().153 Timeout waiting for session-accept from obviouswolvessearchtenderly@conference.localhost/79da8165
+2015-06-13 10:32:55.775 SEVERE: [51] org.jitsi.protocol.xmpp.AbstractOperationSetJingle.initiateSession().153 Timeout waiting for session-accept from obviouswolvessearchtenderly@conference.localhost/9ac41ecc
+2015-06-13 11:34:07.508 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-13 11:34:07.508 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-13 11:39:11.813 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for lonelylizardssolveeuphoricly@conference.localhost/jirecon
+2015-06-13 11:40:01.708 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for lonelylizardssolveeuphoricly@conference.localhost/c874018a
+2015-06-13 11:40:02.908 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for lonelylizardssolveeuphoricly@conference.localhost/6624df8f
+2015-06-13 11:41:32.458 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for curioussnakesfailscornfully@conference.localhost/jirecon
+2015-06-13 11:42:02.916 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for curioussnakesfailscornfully@conference.localhost/d397ad3e
+2015-06-13 11:42:03.968 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for curioussnakesfailscornfully@conference.localhost/40a958f7
+2015-06-13 11:49:30.569 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for jollycowsperformhumbly@conference.localhost/jirecon
+2015-06-13 11:54:47.846 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for jollycowsperformhumbly@conference.localhost/033ec734
+2015-06-13 11:54:54.563 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for jollycowsperformhumbly@conference.localhost/138f1c37
+2015-06-13 14:31:49.935 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for slowfrogsreckonshakily@conference.localhost/453ed471
+2015-06-13 14:31:50.632 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for slowfrogsreckonshakily@conference.localhost/f20e5757
+2015-06-13 16:43:36.806 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-13 16:43:53.871 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for hardgoatsdancedesperately@conference.localhost/4e02a116
+2015-06-13 16:43:55.474 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for hardgoatsdancedesperately@conference.localhost/2eea69b6
+2015-06-13 16:44:23.870 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-13 16:45:21.075 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for lovingelvesconjurebravely@conference.localhost/3ba2d94f
+2015-06-13 16:45:36.402 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for lovingelvesconjurebravely@conference.localhost/dc7e22f3
+2015-06-13 16:46:48.260 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for delicatereptiliansflossastonishingly@conference.localhost/839c5dae
+2015-06-13 16:46:50.709 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for delicatereptiliansflossastonishingly@conference.localhost/a8dd0a95
+2015-06-14 11:11:16.045 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-14 11:12:00.122 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for softorangesexpirecarefully@conference.localhost/93b65af1
+2015-06-14 11:12:01.061 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for softorangesexpirecarefully@conference.localhost/5b3ae570
+2015-06-14 11:12:50.819 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for lazybugsrejoicewell@conference.localhost/5433c606
+2015-06-14 11:12:52.963 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for lazybugsrejoicewell@conference.localhost/1d9b9ca3
+2015-06-14 11:13:32.221 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-14 11:14:08.869 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for poordolphinsconjurestrongly@conference.localhost/ec9a836a
+2015-06-14 11:14:11.700 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for poordolphinsconjurestrongly@conference.localhost/ca198b4c
+2015-06-14 14:49:35.254 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-14 14:49:35.403 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-14 14:50:12.642 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for solemnworkersburncalmly@conference.localhost/b83278fc
+2015-06-14 14:50:13.308 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for solemnworkersburncalmly@conference.localhost/c4e125f3
+2015-06-14 14:50:53.127 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-14 17:00:34.143 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for foxymiceterminaterarely@conference.localhost/79f50e0c
+2015-06-14 17:00:34.835 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for foxymiceterminaterarely@conference.localhost/cd8ec171
+2015-06-14 19:08:52.606 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for responsiblebearsfallguiltily@conference.localhost/3bed34d7
+2015-06-14 19:09:01.763 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for responsiblebearsfallguiltily@conference.localhost/550f9f5a
+2015-06-14 19:15:22.153 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for purplegalaxiesscreamnicely@conference.localhost/2cb43f8a
+2015-06-14 19:16:10.532 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for purplegalaxiesscreamnicely@conference.localhost/b4e94ce5
+2015-06-15 14:52:48.984 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-15 14:52:49.149 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-15 14:53:06.190 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for beautifulapesdrinkpoorly@conference.localhost/jirecon
+2015-06-15 14:54:39.888 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for beautifulapesdrinkpoorly@conference.localhost/jirecon
+2015-06-15 15:08:10.481 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for beautifulapesdrinkpoorly@conference.localhost/7d4540b9
+2015-06-15 15:08:12.359 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for beautifulapesdrinkpoorly@conference.localhost/1202f802
+2015-06-15 16:57:12.459 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-15 16:57:52.095 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for quietgorillasgathercarefully@conference.localhost/jirecon
+2015-06-15 16:59:28.907 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for quietgorillasgathercarefully@conference.localhost/jirecon
+2015-06-15 17:50:42.134 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for quietgorillasgathercarefully@conference.localhost/jirecon
+2015-06-15 17:59:46.931 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for quietgorillasgathercarefully@conference.localhost/0f74d7ae
+2015-06-15 17:59:47.529 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for quietgorillasgathercarefully@conference.localhost/7571efa9
+2015-06-15 18:17:39.982 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-15 18:17:39.994 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-15 18:17:58.330 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for pinkdogslaughimpolitely@conference.localhost/c23ab690
+2015-06-15 18:18:05.961 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for pinkdogslaughimpolitely@conference.localhost/87deaddd
+2015-06-15 18:18:10.428 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-15 18:18:10.484 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-15 18:20:43.419 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for pinkdogslaugh@conference.localhost/jirecon
+2015-06-15 18:22:03.095 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for pinkdogslaughimpolitely@conference.localhost/jirecon
+2015-06-15 18:34:07.639 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for pinkdogslaugh@conference.localhost/7d44bb8f
+2015-06-16 09:59:35.591 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for pinkdogslaughimpolitely@conference.localhost/f82fe69c
+2015-06-16 10:00:01.619 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for worrieddragonsbiteadorably@conference.localhost/cf429986
+2015-06-16 10:00:12.263 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for worrieddragonsbiteadorably@conference.localhost/df9b1db1
+2015-06-16 10:00:23.977 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-16 10:01:20.819 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for worrieddragonsbiteadorably@conference.localhost/jirecon
+2015-06-16 10:12:37.070 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for worrieddragonsbiteadorably@conference.localhost/6a66c072
+2015-06-16 10:12:46.722 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-16 10:12:48.837 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for worrieddragonsbiteadorably@conference.localhost/1fccf20e
+2015-06-16 10:15:56.421 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for testconference@conference.localhost/jirecon
+2015-06-16 10:33:20.969 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for testconference@conference.localhost/7005a7d0
+2015-06-16 10:33:26.489 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for testconference@conference.localhost/6bd76e27
+2015-06-16 10:34:06.632 SEVERE: [20] org.jivesoftware.smack.PacketReader.notifyConnectionError() Closes the connection temporary
+stream:error (text)
+	at org.jivesoftware.smack.PacketReader.parsePackets(PacketReader.java:264)
+	at org.jivesoftware.smack.PacketReader.access$000(PacketReader.java:45)
+	at org.jivesoftware.smack.PacketReader$1.run(PacketReader.java:74)
+2015-06-16 10:34:06.676 SEVERE: [20] org.jitsi.impl.protocol.xmpp.XmppProtocolProvider.error() XMPP connection closed on error: stream:error (text)
+2015-06-21 14:47:36.523 SEVERE: [1] org.jitsi.jicofo.Main.main().268 org.xmpp.component.ComponentException: host-unknown
+org.xmpp.component.ComponentException: host-unknown
+	at org.jivesoftware.whack.ExternalComponent.connect(ExternalComponent.java:219)
+	at org.jivesoftware.whack.ExternalComponentManager.addComponent(ExternalComponentManager.java:221)
+	at org.jivesoftware.whack.ExternalComponentManager.addComponent(ExternalComponentManager.java:201)
+	at org.jitsi.jicofo.Main.main(Main.java:264)
+2015-06-21 14:47:36.621 SEVERE: [1] util.UtilActivator.uncaughtException().108 An uncaught exception occurred in thread=Thread[main,5,main] and message was: null
+java.lang.NullPointerException
+	at org.xmpp.component.AbstractComponent.closeQueue(AbstractComponent.java:893)
+	at org.xmpp.component.AbstractComponent.shutdown(AbstractComponent.java:875)
+	at org.jitsi.jicofo.Main.main(Main.java:290)
+2015-06-21 14:47:36.834 SEVERE: [18] org.jivesoftware.smack.PacketReader.notifyConnectionError() Closes the connection temporary
+stream:error (text)
+	at org.jivesoftware.smack.PacketReader.parsePackets(PacketReader.java:264)
+	at org.jivesoftware.smack.PacketReader.access$000(PacketReader.java:45)
+	at org.jivesoftware.smack.PacketReader$1.run(PacketReader.java:74)
+2015-06-21 14:48:34.982 SEVERE: [1] org.jitsi.jicofo.Main.main().268 org.xmpp.component.ComponentException: host-unknown
+org.xmpp.component.ComponentException: host-unknown
+	at org.jivesoftware.whack.ExternalComponent.connect(ExternalComponent.java:219)
+	at org.jivesoftware.whack.ExternalComponentManager.addComponent(ExternalComponentManager.java:221)
+	at org.jivesoftware.whack.ExternalComponentManager.addComponent(ExternalComponentManager.java:201)
+	at org.jitsi.jicofo.Main.main(Main.java:264)
+2015-06-21 14:48:35.008 SEVERE: [1] util.UtilActivator.uncaughtException().108 An uncaught exception occurred in thread=Thread[main,5,main] and message was: null
+java.lang.NullPointerException
+	at org.xmpp.component.AbstractComponent.closeQueue(AbstractComponent.java:893)
+	at org.xmpp.component.AbstractComponent.shutdown(AbstractComponent.java:875)
+	at org.jitsi.jicofo.Main.main(Main.java:290)
+2015-06-21 14:48:36.115 SEVERE: [15] org.jitsi.impl.protocol.xmpp.OpSetSimpleCapsImpl.getItems().57 Error while discovering the services of lo192.168.1.7 , error msg: remote-server-not-found(-1) Server-to-server connection failed: DNS resolution failed
+2015-06-21 14:48:36.116 SEVERE: [15] org.jitsi.jicofo.ProtocolProviderHandler.registrationStateChanged().144 null
+java.lang.NullPointerException
+	at org.jitsi.jicofo.ComponentsDiscovery.discoverServices(ComponentsDiscovery.java:185)
+	at org.jitsi.jicofo.ComponentsDiscovery.firstTimeDiscovery(ComponentsDiscovery.java:242)
+	at org.jitsi.jicofo.ComponentsDiscovery.registrationStateChanged(ComponentsDiscovery.java:265)
+	at org.jitsi.jicofo.ProtocolProviderHandler.registrationStateChanged(ProtocolProviderHandler.java:140)
+	at net.java.sip.communicator.service.protocol.AbstractProtocolProviderService.fireRegistrationStateChanged(AbstractProtocolProviderService.java:176)
+	at net.java.sip.communicator.service.protocol.AbstractProtocolProviderService.fireRegistrationStateChanged(AbstractProtocolProviderService.java:130)
+	at org.jitsi.impl.protocol.xmpp.XmppProtocolProvider.notifyConnected(XmppProtocolProvider.java:208)
+	at org.jitsi.impl.protocol.xmpp.XmppProtocolProvider.register(XmppProtocolProvider.java:195)
+	at org.jitsi.jicofo.util.RegisterThread.run(RegisterThread.java:49)
+2015-06-21 14:49:23.496 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-21 14:50:33.387 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for greenwizardsvanishcautiously@conference.192.168.1.7/f72840d8
+2015-06-21 14:50:43.202 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for greenwizardsvanishcautiously@conference.192.168.1.7/d552067c
+2015-06-21 14:50:44.294 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for greenwizardsvanishcautiously@conference.192.168.1.7/6d92643f
+2015-06-21 14:55:13.048 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-21 14:55:44.455 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for test@conference.192.168.1.7/ab541dcf
+2015-06-21 14:55:46.898 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for test@conference.192.168.1.7/4fffb0d6
+2015-06-21 15:04:58.073 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-21 15:04:58.227 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-21 15:05:34.109 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for moodygorillasworshipslightly@conference.192.168.1.7/4bc9c002
+2015-06-21 15:05:45.898 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for moodygorillasworshipslightly@conference.192.168.1.7/c453e81c
+2015-06-21 15:39:47.992 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-21 15:39:48.090 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-21 15:40:07.892 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for dizzyaliensimproveweakly@conference.192.168.1.7/jirecon
+2015-06-22 15:15:32.936 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:15:33.089 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:15:50.508 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for jollychildrenmoveanywhere@conference.localhost/f438926d
+2015-06-22 15:15:52.736 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for jollychildrenmoveanywhere@conference.localhost/a75dfc0e
+2015-06-22 15:23:21.704 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:23:21.858 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:23:34.650 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for fiercereptilianshidehappily@conference.localhost/7c3776c9
+2015-06-22 15:23:36.114 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for fiercereptilianshidehappily@conference.localhost/928ad279
+2015-06-22 15:29:12.369 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:29:12.519 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:29:22.053 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for dumbmonkeyskisssolemnly@conference.localhost/1f7c875c
+2015-06-22 15:29:23.670 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for dumbmonkeyskisssolemnly@conference.localhost/e76e309e
+2015-06-22 15:29:37.535 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:29:37.535 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:32:59.665 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:32:59.836 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:45:09.017 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for humblewarewolvesblushrarely@conference.localhost/b13fc17e
+2015-06-22 15:45:14.332 SEVERE: [23] org.jitsi.jicofo.JitsiMeetConference.onMemberLeft().1179 Member not found for humblewarewolvesblushrarely@conference.localhost/89ed9639
+2015-06-22 15:45:18.675 SEVERE: [23] org.jitsi.jicofo.MeetExtensionsHandler.handlePresence().485 Unable to send DisplayNameChanged event - no conference id
+2015-06-22 15:45:35.739 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for humblewarewolvesblushrarely@conference.localhost/28786a50
+2015-06-22 15:45:36.519 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for humblewarewolvesblushrarely@conference.localhost/a9fb59d7
+2015-06-22 15:46:01.130 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for rapidspidersteachangrily@conference.localhost/c25ea23e
+2015-06-22 15:46:02.493 SEVERE: [23] org.jitsi.impl.protocol.xmpp.ChatRoomImpl.getMemberJid().870 Unable to get occupant for rapidspidersteachangrily@conference.localhost/5c81013f

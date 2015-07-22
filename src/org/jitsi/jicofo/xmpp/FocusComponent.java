@@ -384,7 +384,12 @@ public class FocusComponent
         ConferenceIq response = new ConferenceIq();
         String room = query.getRoom();
 
-        logger.info("Focus request for room: " + room);
+        //logger.info("Focus request for room: " + room);
+        
+        
+          logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +room +  ", RoutingID :" +null +", Message:"+"Focus request for room: " + room);
+        
+        
 
         boolean roomExists = focusManager.getConference(room) != null;
 

@@ -21,6 +21,7 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
 import net.java.sip.communicator.util.Logger;
+
 import org.jitsi.jicofo.auth.*;
 import org.jitsi.jicofo.log.*;
 import org.jitsi.protocol.xmpp.*;
@@ -155,8 +156,8 @@ public class ChatRoomRoleAndPresence
     @Override
     public void memberPresenceChanged(ChatRoomMemberPresenceChangeEvent evt)
     {
-        logger.info("Chat room event " + evt);
-
+       // logger.info("Chat room event " + evt);
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:"+ this.chatRoom.getName() + ", RoutingID :" +null +", Message:"+" Chat room event " + evt);
         ChatRoomMember sourceMember = evt.getChatRoomMember();
 
         String eventType = evt.getEventType();
@@ -178,7 +179,10 @@ public class ChatRoomRoleAndPresence
         {
             if (owner == sourceMember)
             {
-                logger.info("Owner has left the room !");
+                //logger.info("Owner has left the room !");
+            	//logger.audit("Owner has left the room !");
+            	logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" + chatRoom.getName()  + ", RoutingID :" + sourceMember +", Message: Owner has left the room !");
+            	
                 owner = null;
                 electNewOwner();
             }
@@ -306,9 +310,11 @@ public class ChatRoomRoleAndPresence
     @Override
     public void localUserRoleChanged(ChatRoomLocalUserRoleChangeEvent evt)
     {
-        logger.info(
+        /*logger.info(
             "Focus role: " + evt.getNewRole() + " init: " + evt.isInitial());
-
+*/
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MUC ID:" +this.chatRoom.getName() + ", Routing ID :" +null +", Message:"+" Focus role: " + evt.getNewRole() + " init: " + evt.isInitial());
+        
         focusRole = evt.getNewRole();
         if (!verifyFocusRole())
         {

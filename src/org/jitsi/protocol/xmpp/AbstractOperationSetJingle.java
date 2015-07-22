@@ -94,7 +94,14 @@ public abstract class AbstractOperationSetJingle
                                 JingleRequestHandler requestHandler,
                                 boolean[] startMuted)
     {
-        logger.info("INVITE PEER: " + address);
+    	
+    	String split[] = address.split("/");
+    	
+    	
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +split[0]  + ", RoutingID :" +split[1] +", Message:"+"INVITE PEER: " + address);
+
+    	
+       // logger.info("INVITE PEER: " + address);
 
         String sid = JingleIQ.generateSID();
 
@@ -321,8 +328,14 @@ public abstract class AbstractOperationSetJingle
         addSourceIq.setTo(session.getAddress());
         addSourceIq.setSID(peerSid);
 
-        logger.info("Notify add SSRC" + session.getAddress()
-                        + " SID: " + peerSid);
+	        /*logger.info("Notify add SSRC" + session.getAddress()
+	                        + " SID: " + peerSid);
+	         */        
+        
+        String split[] = session.getAddress().split("/");
+        
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +split[0] + ", RoutingID :" +split[1] +", Message:"+"Notify add SSRC" + session.getAddress()
+                             + " SID: " + peerSid);
 
         getConnection().sendPacket(addSourceIq);
     }
@@ -426,9 +439,15 @@ public abstract class AbstractOperationSetJingle
         removeSourceIq.setTo(session.getAddress());
         removeSourceIq.setSID(peerSid);
 
-        logger.info("Notify remove SSRC " + session.getAddress()
+       /* logger.info("Notify remove SSRC " + session.getAddress()
                         + " SID: " + peerSid);
-
+*/
+        String split[] = session.getAddress().split("/");
+        
+        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +split[0]+ ", RoutingID :" +split[1] +", Message:"+" Notify remove SSRC " + session.getAddress()
+         + " SID: " + peerSid);
+        
+        
         XmppConnection connection = getConnection();
 
         connection.sendPacket(removeSourceIq);
