@@ -1,6 +1,6 @@
 language: java
 script: 
-  - ant test
+  - ant clean make test
 notifications:
   # Email notifications are disabled to not annoy anybody.
   # See http://about.travis-ci.org/docs/user/build-configuration/ to learn more
