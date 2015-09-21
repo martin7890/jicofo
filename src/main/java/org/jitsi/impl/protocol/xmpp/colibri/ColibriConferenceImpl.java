@@ -29,6 +29,7 @@ import org.jitsi.protocol.xmpp.colibri.*;
 import org.jitsi.protocol.xmpp.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+
 import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
@@ -133,7 +134,7 @@ public class ColibriConferenceImpl
     @Override
     public synchronized ColibriConferenceIQ createColibriChannels(
             boolean useBundle,
-            String endpointName,String roomName,
+            String endpointName,
             boolean peerIsInitiator,
             List<ContentPacketExtension> contents)
         throws OperationFailedException
@@ -141,7 +142,7 @@ public class ColibriConferenceImpl
         colibriBuilder.reset();
 
         colibriBuilder.addAllocateChannelsReq(
-                useBundle, endpointName,roomName, peerIsInitiator, contents);
+            useBundle, endpointName, peerIsInitiator, contents);
 
         ColibriConferenceIQ allocateRequest
             = colibriBuilder.getRequest(jitsiVideobridge);
@@ -309,19 +310,13 @@ public class ColibriConferenceImpl
 
                 reqChannel.setID(channel.getID());
 
-                if (ssrcs != null)
+                List<SourcePacketExtension> sources
+                    = ssrcs.getSSRCsForMedia(content.getName());
+                for (SourcePacketExtension source : sources)
                 {
-                    List<SourcePacketExtension> sources
-                        = ssrcs.getSSRCsForMedia(content.getName());
-                    if (sources != null && !sources.isEmpty())
-                    {
-                        for (SourcePacketExtension source : sources)
-                        {
-                            reqChannel.addSource(source.copy());
-                            hasChannels = true;
-                            updateNeeded = true;
-                        }
-                    }
+                    reqChannel.addSource(source.copy());
+                    hasChannels = true;
+                    updateNeeded = true;
                 }
 
                 if (reqChannel.getSources() == null
@@ -435,6 +430,7 @@ public class ColibriConferenceImpl
     {
         ColibriConferenceIQ request = new ColibriConferenceIQ();
         request.setID(conferenceState.getID());
+        request.setName(conferenceState.getName());
 
         ColibriConferenceIQ.Content audioContent
             = channelsInfo.getContent("audio");
@@ -483,5 +479,23 @@ public class ColibriConferenceImpl
         // FIXME wait for response and set local status
 
         return true;
+    }
+
+    /**
+     * Sets world readable name that identifies the conference.
+     * @param name the new name.
+     */
+    public void setName(String name)
+    {
+        conferenceState.setName(name);
+    }
+
+    /**
+     * Gets world readable name that identifies the conference.
+     * @return the name.
+     */
+    public String getName()
+    {
+        return conferenceState.getName();
     }
 }

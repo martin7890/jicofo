@@ -263,12 +263,11 @@ public class ChatRoomImpl
     {
         Connection connection = opSet.getConnection();
         if (connection != null && connection.isConnected())
-        {
             muc.leave();
-        }
 
         // Simulate member left events
-        HashMap<String, ChatMemberImpl> membersCopy;
+        // No need to do this - we dispose whole conference anyway on stop
+        /*HashMap<String, ChatMemberImpl> membersCopy;
         synchronized (members)
         {
             membersCopy
@@ -278,7 +277,7 @@ public class ChatRoomImpl
         for (ChatMemberImpl member : membersCopy.values())
         {
             memberListener.left(member.getContactAddress());
-        }
+        }*/
 
         /*
         FIXME: we do not care about local user left for now
@@ -291,7 +290,9 @@ public class ChatRoomImpl
         if (presenceInterceptor != null)
             muc.removePresenceInterceptor(presenceInterceptor);
         muc.removeParticipantStatusListener(memberListener);
-        muc.removeParticipantListener(participantListener);
+
+        if (connection != null && connection.isConnected())
+            muc.removeParticipantListener(participantListener);
 
         muc.dispose();
 

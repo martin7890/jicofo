@@ -17,8 +17,6 @@
  */
 package org.jitsi.jicofo.auth;
 
-import net.java.sip.communicator.util.Logger;
-
 import org.jitsi.impl.protocol.xmpp.extensions.*;
 import org.jitsi.util.*;
 import org.jivesoftware.smack.packet.*;
@@ -47,12 +45,6 @@ public class ShibbolethAuthAuthority
     extends AbstractAuthAuthority
     implements AuthenticationAuthority
 {
-    /**
-     * The logger.
-     */
-    private final static Logger logger
-        = Logger.getLogger(ShibbolethAuthAuthority.class);
-
     /**
      * Value constant which should be passed as {@link
      * AuthBundleActivator#LOGIN_URL_PNAME} and {@link
@@ -200,8 +192,7 @@ public class ShibbolethAuthAuthority
      * {@inheritDoc}
      */
     @Override
-    protected IQ processAuthLocked(
-            ConferenceIq query, ConferenceIq response)
+    protected IQ processAuthLocked(ConferenceIq query, ConferenceIq response)
     {
         // FIXME this now looks like it could be merged with XMPP or moved to
         // abstract

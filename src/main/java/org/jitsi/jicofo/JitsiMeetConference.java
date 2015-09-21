@@ -27,7 +27,6 @@ import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
 import net.java.sip.communicator.util.Logger;
 
-import org.jitsi.impl.protocol.xmpp.XmppProtocolProvider;
 import org.jitsi.impl.protocol.xmpp.extensions.*;
 import org.jitsi.jicofo.log.*;
 import org.jitsi.jicofo.recording.*;
@@ -35,6 +34,7 @@ import org.jitsi.jicofo.reservation.*;
 import org.jitsi.jicofo.util.*;
 import org.jitsi.protocol.*;
 import org.jitsi.protocol.xmpp.*;
+import org.jitsi.impl.protocol.xmpp.*;
 import org.jitsi.protocol.xmpp.colibri.*;
 import org.jitsi.protocol.xmpp.util.*;
 import org.jitsi.service.neomedia.*;
@@ -111,8 +111,7 @@ public class JitsiMeetConference
     /**
      * XMPP protocol provider handler used by the focus.
      */
-    private ProtocolProviderHandler protocolProviderHandler
-        = new ProtocolProviderHandler();
+    private final ProtocolProviderHandler protocolProviderHandler;
 
     /**
      * The name of XMPP user used by the focus to login.
@@ -218,6 +217,9 @@ public class JitsiMeetConference
                                ConferenceListener listener,
                                JitsiMeetConfig config)
     {
+        if (protocolProviderHandler == null)
+            throw new NullPointerException("protocolProviderHandler");
+
         this.id = ID_DATE_FORMAT.format(new Date()) + "_" + hashCode();
         this.roomName = roomName;
         this.focusUserName = focusUserName;
@@ -231,7 +233,10 @@ public class JitsiMeetConference
      * Starts conference focus processing, bind listeners and so on...
      *
      * @throws Exception if error occurs during initialization. Instance is
-     *         considered broken in that case.
+     *         considered broken in that case. It's stop method will be called
+     *         before throwing the exception to perform deinitialization where
+     *         possible. {@link ConferenceListener}s will be notified that this
+     *         conference has ended.
      */
     public synchronized void start()
         throws Exception
@@ -241,45 +246,75 @@ public class JitsiMeetConference
 
         started = true;
 
-        colibri
-            = protocolProviderHandler.getOperationSet(
-                    OperationSetColibriConference.class);
-
-        jingle
-            = protocolProviderHandler.getOperationSet(
-                    OperationSetJingle.class);
-
-        chatOpSet
-            = protocolProviderHandler.getOperationSet(
-                    OperationSetMultiUserChat.class);
-
-        meetTools
-            = protocolProviderHandler.getOperationSet(
-                    OperationSetJitsiMeetTools.class);
-
-        services
-            = ServiceUtils.getService(
-                    FocusBundleActivator.bundleContext,
-                    JitsiMeetServices.class);
-
-        // Set pre-configured videobridge
-        services.getBridgeSelector()
-            .setPreConfiguredBridge(config.getPreConfiguredVideobridge());
-
-        // Set pre-configured SIP gateway
-        if (config.getPreConfiguredSipGateway() != null)
+        try
         {
-            services.setSipGateway(config.getPreConfiguredSipGateway());
-        }
+            colibri
+                = protocolProviderHandler.getOperationSet(
+                        OperationSetColibriConference.class);
+            jingle
+                = protocolProviderHandler.getOperationSet(
+                        OperationSetJingle.class);
+            chatOpSet
+                = protocolProviderHandler.getOperationSet(
+                        OperationSetMultiUserChat.class);
+            meetTools
+                = protocolProviderHandler.getOperationSet(
+                        OperationSetJitsiMeetTools.class);
 
-        if (protocolProviderHandler.isRegistered())
+            services
+                = ServiceUtils.getService(
+                        FocusBundleActivator.bundleContext,
+                        JitsiMeetServices.class);
+
+            // Set pre-configured videobridge
+            services.getBridgeSelector().setPreConfiguredBridge(
+                    config.getPreConfiguredVideobridge());
+
+            // Set pre-configured SIP gateway
+            if (config.getPreConfiguredSipGateway() != null)
+            {
+                services.setSipGateway(config.getPreConfiguredSipGateway());
+            }
+
+            if (protocolProviderHandler.isRegistered())
+            {
+                joinTheRoom();
+            }
+
+            protocolProviderHandler.addRegistrationListener(this);
+
+            idleTimestamp = System.currentTimeMillis();
+        }
+        catch(Exception e)
         {
-            joinTheRoom();
+            this.stop();
+
+            throw e;
         }
+    }
 
-        protocolProviderHandler.addRegistrationListener(this);
+    /**
+     * Stops the conference, disposes colibri channels and releases all
+     * resources used by the focus.
+     */
+    synchronized void stop()
+    {
+        if (!started)
+            return;
 
-        idleTimestamp = System.currentTimeMillis();
+        started = false;
+
+        protocolProviderHandler.removeRegistrationListener(this);
+
+        disposeConference();
+
+        leaveTheRoom();
+
+        if (jingle != null)
+            jingle.terminateHandlersSessions(this);
+
+        if (listener != null)
+            listener.conferenceEnded(this);
     }
 
     /**
@@ -360,7 +395,9 @@ public class JitsiMeetConference
                 recorder
                     = new JvbRecorder(
                             colibriConference.getConferenceId(),
-                            videobridge, xmppOpSet);
+                            videobridge,
+                            colibriConference.getName(),
+                            xmppOpSet);
             }
         }
         return recorder;
@@ -421,6 +458,9 @@ public class JitsiMeetConference
             colibriConference = colibri.createNewConference();
 
             colibriConference.setConfig(config);
+
+            String roomName = MucUtil.extractName(chatRoom.getName());
+            colibriConference.setName(roomName);
         }
 
         // Invite all not invited yet
@@ -708,10 +748,10 @@ public class JitsiMeetConference
             	
 
                 ColibriConferenceIQ peerChannels
-                = colibriConference.createColibriChannels(
-                        peer.hasBundleSupport(),
-                        peer.getEndpointId(),getRoomName(),
-                        true, contents);
+                    = colibriConference.createColibriChannels(
+                            peer.hasBundleSupport(),
+                            peer.getEndpointId(),
+                            true, contents);
 
                 bridgeSelector.updateBridgeOperationalStatus(
                     colibriConference.getJitsiVideobridge(), true);
@@ -833,7 +873,6 @@ public class JitsiMeetConference
         if (peerChannels == null)
             return null;
 
-
         if (earlyRecordingState != null)
         {
             RecordingState recState = earlyRecordingState;
@@ -864,6 +903,9 @@ public class JitsiMeetConference
                     response.setType(IQ.Type.SET);
                     response.setTo(recState.from);
                     response.setFrom(recState.to);
+
+                    if(colibriConference != null)
+                        response.setName(colibriConference.getName());
 
                     response.setRecording(
                         new ColibriConferenceIQ.Recording(State.ON));
@@ -1244,35 +1286,6 @@ public class JitsiMeetConference
         {
             stop();
         }
-    }
-
-    /**
-     * Stops the conference, disposes colibri channels and releases all
-     * resources used by the focus.
-     */
-    synchronized void stop()
-    {
-        if (!started)
-            return;
-
-        started = false;
-
-        if (protocolProviderHandler != null)
-        {
-            //FIXME: remove when leak is fixed
-            logger.info(
-                "Removing protocol listener - " + roomName
-                + ", " + this);
-            protocolProviderHandler.removeRegistrationListener(this);
-        }
-
-        disposeConference();
-
-        leaveTheRoom();
-
-        jingle.terminateHandlersSessions(this);
-
-        listener.conferenceEnded(this);
     }
 
     @Override

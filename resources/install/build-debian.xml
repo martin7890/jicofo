@@ -99,6 +99,7 @@
         <copy todir="${debian.dir}/usr/share/jicofo/lib"
               overwrite="true" includeEmptyDirs="No">
             <fileset dir="lib/">
+                <exclude name="logging.properties"/>
                 <exclude name="native/macos*/*"/>
                 <exclude name="native/windows*/*"/>
                 <exclude name="native/${exclude-dir}/*"/>
@@ -106,6 +107,9 @@
         </copy>
         <copy file="jicofo.jar"
               todir="${debian.dir}/usr/share/jicofo"
+              overwrite="true"/>
+        <copy file="lib/logging.properties"
+              todir="${debian.dir}/etc/jitsi/jicofo"
               overwrite="true"/>
         <copy file="resources/install/${include-dir}/jicofo.sh"
               todir="${debian.dir}/usr/share/jicofo"

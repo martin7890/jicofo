@@ -23,7 +23,6 @@ import mock.util.*;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jingle.*;
-import net.java.sip.communicator.util.*;
 
 import org.jitsi.jicofo.osgi.*;
 import org.jitsi.jicofo.util.*;
@@ -50,11 +49,6 @@ import static org.junit.Assert.assertEquals;
 @RunWith(JUnit4.class)
 public class ColibriTest
 {
-    /**
-     * The logger
-     */
-    private final static Logger logger = Logger.getLogger(BundleTest.class);
-
     static OSGiHandler osgi = new OSGiHandler();
 
     @BeforeClass
@@ -121,20 +115,16 @@ public class ColibriTest
         String peer1 = "endpoint1";
         boolean peer2UseBundle = true;
         String peer2 = "endpoint2";
-	String roomName1 = "room1";
-	String roomName2 = "room2";
 
-
-	
         ColibriConferenceIQ peer1Channels
             = colibriConf.createColibriChannels(
-                peer1UseBundle, peer1,roomName1, true, contents);
+                peer1UseBundle, peer1, true, contents);
 
         assertEquals(3 , mockBridge.getChannelsCount());
 
         ColibriConferenceIQ peer2Channels
             = colibriConf.createColibriChannels(
-                peer2UseBundle, peer2,roomName2,true, contents);
+                peer2UseBundle, peer2, true, contents);
 
         assertEquals(6 , mockBridge.getChannelsCount());
 
