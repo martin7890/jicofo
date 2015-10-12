@@ -24,7 +24,6 @@ if [ ! $JICOFO_HOST ]; then
     JICOFO_HOST=localhost
 fi
 
-
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/share/jicofo/jicofo.sh
 DEAMON_DIR=/usr/share/jicofo/
