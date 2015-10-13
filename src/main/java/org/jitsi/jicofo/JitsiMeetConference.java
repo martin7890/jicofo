@@ -32,6 +32,7 @@ import org.jitsi.jicofo.log.*;
 import org.jitsi.jicofo.recording.*;
 import org.jitsi.jicofo.reservation.*;
 import org.jitsi.jicofo.util.*;
+import org.jitsi.jicofo.xmpp.FocusComponent;
 import org.jitsi.protocol.*;
 import org.jitsi.protocol.xmpp.*;
 import org.jitsi.impl.protocol.xmpp.*;
@@ -65,8 +66,7 @@ public class JitsiMeetConference
     /**
      * The logger instance used by this class.
      */
-    private final static Logger logger
-        = Logger.getLogger(JitsiMeetConference.class);
+	private static final net.java.sip.communicator.util.Logger logger = net.java.sip.communicator.util.Logger.getLogger(JitsiMeetConference.class);
 
     /**
      * Error code used in {@link OperationFailedException} when there are no
@@ -154,6 +154,9 @@ public class JitsiMeetConference
      */
     private final List<Participant> participants
         = new CopyOnWriteArrayList<Participant>();
+    
+    
+    private static Map<String,String> participantType = new HashMap<String, String>();    
 
     /**
      * Information about Jitsi Meet conference services like videobridge,
@@ -334,9 +337,15 @@ public class JitsiMeetConference
         throws Exception
     {
         //logger.info("Joining the room: " + roomName);
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +null +", Message:"+"Joining the room: " + roomName);
+        /*logger.audit("Code= Info, Action= Focus Join"+", MucID:" +roomName + ", RoutingID : Focus - " +FocusComponent.getFocusId() +", Message:"+"Joining the room: " + roomName);
+       */
         chatRoom = chatOpSet.findRoom(roomName);
+        
 
+        String room = roomName.substring(0,roomName.indexOf('@'));	
+        
+        logger.audit("room-id=" +room + ", routing_id=" +FocusComponent.getFocusId() +", Code=Info, Action=FocusJoin  Message:"+"Joining the room: " + room);
+        
         rolesAndPresence = new ChatRoomRoleAndPresence(this, chatRoom);
         rolesAndPresence.init();
 
@@ -378,7 +387,7 @@ public class JitsiMeetConference
             }
             else
             {
-                logger.warn("No recorder service discovered - using JVB");
+                logger.warn("Code=Warning, No recorder service discovered - using JVB");
 
                 if(colibriConference == null)
                 {
@@ -433,13 +442,28 @@ public class JitsiMeetConference
      */
     protected void onMemberJoined(final ChatRoomMember chatRoomMember)
     {
-        /*logger.info(
-            "Member " + chatRoomMember.getContactAddress() + " joined.");*/
-    	
     	String endpoint = chatRoomMember.getContactAddress().split("/")[1];
-    	
-    	logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint+ ", Message:"+" Member " + chatRoomMember.getContactAddress() + " joined.");
-    	
+    		
+    	String room = roomName.substring(0,roomName.indexOf('@'));
+    
+    	if((chatRoom.getMembersCount()-1)!=0)
+    	{
+    	    Participant newParticipant;
+    	    newParticipant = new Participant((XmppChatMember) chatRoomMember);
+    	    String jid = newParticipant.getChatMember().getJabberID();
+    	    
+    	    if(jid.contains("xrtc_sp00f_s1p"))
+            {
+    			participantType.put(endpoint,"SIP");
+    			logger.audit("room-id=" +room + ", routing_id=" +endpoint +", Code=Info, Action=MemberJoining, Message="+"SIP participant " +endpoint+ " joined. Total number of participants present in conference: "+(chatRoom.getMembersCount()-1));
+            }
+    		else
+    		{
+    			participantType.put(endpoint,"RTC");
+    			logger.audit("room-id=" +room + ", routing_id=" +endpoint +", Code=Info, Action=MemberJoining, Message="+"RTC participant " +endpoint+ " joined. Total number of participants present in conference: "+(chatRoom.getMembersCount()-1));
+    		}
+    			
+    	}
     	
         if (!isFocusMember(chatRoomMember))
         {
@@ -506,15 +530,11 @@ public class JitsiMeetConference
         newParticipant = new Participant((XmppChatMember) chatRoomMember);
 
         participants.add(newParticipant);
-
-        //logger.info("Added participant for: " + address);
         
         String endpoint = address.split("/")[1];
-       
+        String room = roomName.substring(0,roomName.indexOf('@'));
         
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+"  Added participant for: " + address);
-        
-        
+        logger.audit("room-id=" +room + ", routing_id=" +endpoint +", Code=Info, Action=JoiningRoom  Message="+"  Added participant for: " + address);
 
         // Invite peer takes time because of channel allocation, so schedule
         // this on separate thread.
@@ -530,7 +550,7 @@ public class JitsiMeetConference
                 }
                 catch (Exception e)
                 {
-                    logger.error("Exception on participant invite", e);
+                    logger.error("Code=Error, Exception on participant invite", e);
                 }
             }
         });
@@ -617,7 +637,16 @@ public class JitsiMeetConference
         /*logger.info(
             address + " has bundle ? " + newParticipant.hasBundleSupport());*/
         String endpoint = address.split("/")[1];
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+address + " has bundle ? " + newParticipant.hasBundleSupport());
+        //logger.audit("Code= Info, Action= Invite Peer"+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+address + " has bundle ? " + newParticipant.hasBundleSupport());
+        
+        String room = roomName.substring(0,roomName.indexOf('@'));
+        
+        logger.audit("room-id=" +room + ", routing_id=" +endpoint +", Code=Info, Action=InvitePeer,  Message="+address + " has bundle ? " + newParticipant.hasBundleSupport());
+        
+        
+        String jid = newParticipant.getChatMember().getJabberID();
+        logger.info("\nParticipant jid : " +jid);
+        	
         
         
         // Store instance here as it is set to null when conference is disposed
@@ -636,7 +665,7 @@ public class JitsiMeetConference
         catch (OperationFailedException e)
         {
             //FIXME: retry ? sometimes it's just timeout
-            logger.error("Failed to allocate channels for " + address, e);
+            logger.error("Code=Error, Failed to allocate channels for " + address, e);
 
             // Notify users about bridge is down event
             if (BRIDGE_FAILURE_ERR_CODE == e.getErrorCode())
@@ -720,7 +749,7 @@ public class JitsiMeetConference
             if (!bridgesIterator.hasNext())
             {
                 throw new OperationFailedException(
-                    "Failed to allocate channels - no bridge configured",
+                    "Code=Error, Failed to allocate channels - no bridge configured",
                     OperationFailedException.GENERAL_ERROR);
             }
 
@@ -739,12 +768,16 @@ public class JitsiMeetConference
             	
             	String endpoint = peer.getChatMember().getContactAddress().split("/")[1];
             	
-            	logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+"Using " + colibriConference.getJitsiVideobridge()
+            	/*logger.audit("Code= Info, Action= Invite Peer"+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+"Using " + colibriConference.getJitsiVideobridge()
                         + " to allocate channels for: "
-                        + peer.getChatMember().getContactAddress() );
+                        + peer.getChatMember().getContactAddress() );*/
 
             	
-            	
+            	 String room = roomName.substring(0,roomName.indexOf('@'));
+                 
+                 logger.audit("room-id=" +room + ", routing_id=" +endpoint +", Code=Info, Action=InvitePeer,  Message="+"Using " + colibriConference.getJitsiVideobridge()
+                 + " to allocate channels for: "
+                 + peer.getChatMember().getContactAddress());
             	
 
                 ColibriConferenceIQ peerChannels
@@ -776,8 +809,7 @@ public class JitsiMeetConference
             {
                 String faultyBridge = colibriConference.getJitsiVideobridge();
 
-                logger.error(
-                    "Failed to allocate channels using bridge: "
+                logger.error("Code=Error, Failed to allocate channels using bridge: "
                         + colibriConference.getJitsiVideobridge(), exc);
 
                 bridgeSelector.updateBridgeOperationalStatus(
@@ -788,7 +820,7 @@ public class JitsiMeetConference
                         colibriConference.getConferenceId()))
                 {
                     // Restart
-                    logger.error("Bridge failure - stopping the conference");
+                	logger.error("Code=Error, Bridge failure - stopping the conference");
                     stop();
                 }
 
@@ -991,7 +1023,7 @@ public class JitsiMeetConference
                     if (bundle == null)
                     {
                         logger.error(
-                            "No bundle for " + sctpConn.getChannelBundleId());
+                            "Code=Error, No bundle for " + sctpConn.getChannelBundleId());
                         continue;
                     }
 
@@ -1083,7 +1115,7 @@ public class JitsiMeetConference
                     }
                     catch (Exception e)
                     {
-                        logger.error("Copy SSRC error", e);
+                        logger.error("Code=Error, Copy SSRC error", e);
                     }
                 }
 
@@ -1099,7 +1131,7 @@ public class JitsiMeetConference
                     }
                     catch (Exception e)
                     {
-                        logger.error("Copy SSRC error", e);
+                        logger.error("Code=Error, Copy SSRC error", e);
                     }
                 }
 
@@ -1175,7 +1207,7 @@ public class JitsiMeetConference
     {
         if (chatRoom == null)
         {
-            logger.error("Unable to destroy conference MUC room: " + roomName);
+            logger.error("Code=Error, Unable to destroy conference MUC room: " + roomName);
             return;
         }
 
@@ -1212,9 +1244,9 @@ public class JitsiMeetConference
      */
     protected void onMemberKicked(ChatRoomMember chatRoomMember)
     {
-        logger.info(
+       /*logger.info(
             "Member " + chatRoomMember.getContactAddress() + " kicked !!!");
-        /*
+        
         FIXME: terminate will have no effect, as peer's MUC address
          will be no longer active.
         Participant session = findParticipantForChatMember(chatRoomMember);
@@ -1241,20 +1273,17 @@ public class JitsiMeetConference
     protected void onMemberLeft(ChatRoomMember chatRoomMember)
     {
         String contactAddress = chatRoomMember.getContactAddress();
-
-        //logger.info("Member " + contactAddress + " is leaving");
         
         String endpoint = contactAddress.split("/")[1];
-
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+" Member " + contactAddress + " is leaving");
-        
+        String room = roomName.substring(0,roomName.indexOf('@'));    
+       
         Participant leftPeer = findParticipantForChatMember(chatRoomMember);
         if (leftPeer != null)
         {
             JingleSession peerJingleSession = leftPeer.getJingleSession();
             if (peerJingleSession != null)
             {
-                logger.info("Hanging up member " + contactAddress);
+               // logger.info("Hanging up member " + contactAddress);
 
                 removeSSRCs(peerJingleSession,
                         leftPeer.getSSRCsCopy(),
@@ -1264,9 +1293,12 @@ public class JitsiMeetConference
                         = leftPeer.getColibriChannelsInfo();
                 if (peerChannels != null)
                 {
-                    logger.info("Expiring channels for: " + contactAddress);
-                    colibriConference.expireChannels(
-                        leftPeer.getColibriChannelsInfo());
+                    logger.audit("room-id=" +room + ", routing_id=" +endpoint 
+                    		+", Code=Info, Action=MemberLeaving, "
+                    		+ " Message=Expiring channels for: " + contactAddress);
+                                colibriConference.expireChannels(
+                                leftPeer.getColibriChannelsInfo());
+                    
                 }
                 //jingle.terminateSession(session.getJingleSession());
 
@@ -1274,12 +1306,27 @@ public class JitsiMeetConference
 		sendPrivateIQ(leftPeer);
             }
             boolean removed = participants.remove(leftPeer);
-            logger.info(
-                "Removed participant: " + removed + ", " + contactAddress);
+            
+    		if(participantType.get(endpoint)=="SIP")
+            {
+    			logger.audit("room-id=" +room + ", routing_id=" +endpoint 
+                		+", Code=Info, Action=RemovingParticipant, "
+                		+ " Message="+" Removed SIP participant: " + removed + ", " + contactAddress + ". "
+                		+ "Total number of participants present in conference: "
+                		+(chatRoom.getMembersCount()-1));
+            }
+    		else if(participantType.get(endpoint)=="RTC")
+    		{	
+    			logger.audit("room-id=" +room + ", routing_id=" +endpoint 
+                		+", Code=Info, Action=RemovingParticipant, "
+                		+ " Message="+" Removed RTC participant: " + removed + ", " + contactAddress + ". "
+                		+ "Total number of participants present in conference: "
+                		+(chatRoom.getMembersCount()-1));
+    		}
         }
         else
         {
-            logger.error("Member not found for " + contactAddress);
+            logger.error("Code=Error, Member not found for " + contactAddress);
         }
 
         if (participants.size() == 0)
@@ -1304,7 +1351,7 @@ public class JitsiMeetConference
                 }
                 catch (Exception e)
                 {
-                    logger.error("Failed to join the room: " + roomName, e);
+                    logger.error("Code=Error, Failed to join the room: " + roomName, e);
 
                     stop();
                 }
@@ -1378,7 +1425,7 @@ public class JitsiMeetConference
         if (participant == null)
         {
             logger.error(
-                "No participant found for: " + peerJingleSession.getAddress());
+                "Code=Error, No participant found for: " + peerJingleSession.getAddress());
             return;
         }
 
@@ -1386,7 +1433,7 @@ public class JitsiMeetConference
         {
             //FIXME: we should reject it ?
             logger.error(
-                "Reassigning jingle session for participant: "
+                "Code=Error, Reassigning jingle session for participant: "
                         + peerJingleSession.getAddress());
         }
 
@@ -1406,7 +1453,12 @@ public class JitsiMeetConference
         
         String endpoint = peerJingleSession.getAddress().split("/")[1];
         
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+" Got SSRCs from " + peerJingleSession.getAddress());
+        //logger.audit("Code= Info, Action= Peer Added"+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+" Got SSRCs from " + peerJingleSession.getAddress());
+        
+
+   	    String room = roomName.substring(0,roomName.indexOf('@'));
+        
+        
         
         for (Participant peerToNotify : participants)
         {
@@ -1426,6 +1478,10 @@ public class JitsiMeetConference
                     participant.getSSRCGroups());
 
                 continue;
+            }
+            else
+            {
+            	
             }
 
             // Skip origin
@@ -1481,7 +1537,7 @@ public class JitsiMeetConference
         Participant participant = findParticipantForJingleSession(session);
         if (participant == null)
         {
-            logger.error("Failed to process transport-info," +
+            logger.error("Code=Error, Failed to process transport-info," +
                              " no session for: " + session.getAddress());
             return;
         }
@@ -1504,7 +1560,7 @@ public class JitsiMeetConference
             if (transport == null)
             {
                 logger.error(
-                    "No valid transport suppied in transport-update from "
+                    "Code=Error, No valid transport suppied in transport-update from "
                         + participant.getChatMember().getContactAddress());
                 return;
             }
@@ -1559,7 +1615,7 @@ public class JitsiMeetConference
         Participant participant = findParticipantForJingleSession(jingleSession);
         if (participant == null)
         {
-            logger.error("Add-source: no peer state for "
+            logger.error("Code=Error, Add-source: no peer state for "
                              + jingleSession.getAddress());
             return;
         }
@@ -1589,7 +1645,7 @@ public class JitsiMeetConference
             if (peerJingleSession == null)
             {
                 logger.warn(
-                    "Add source: no call for "
+                    "Code=Warning, Add source: no call for "
                         + peerToNotify.getChatMember().getContactAddress());
 
                 peerToNotify.scheduleSSRCsToAdd(ssrcsToAdd);
@@ -1636,14 +1692,14 @@ public class JitsiMeetConference
 
         if (contents == null || contents.isEmpty())
         {
-            logger.error("contents is null.");
+            logger.error("Code=Error, contents is null.");
             return;
         }
 
         Participant participant = findParticipantForJingleSession(session);
         if (participant == null)
         {
-            logger.error("no peer state for " + session.getAddress());
+            logger.error("Code=Error, no peer state for " + session.getAddress());
             return;
         }
 
@@ -1687,7 +1743,7 @@ public class JitsiMeetConference
             = findParticipantForJingleSession(sourceJingleSession);
         if (sourcePeer == null)
         {
-            logger.error("Remove-source: no session for "
+            logger.error("Code=Error, Remove-source: no session for "
                              + sourceJingleSession.getAddress());
             return;
         }
@@ -1701,12 +1757,12 @@ public class JitsiMeetConference
             sourcePeer.getSSRCsCopy(),
             sourcePeer.getSSRCGroupsCopy(),
             sourcePeer.getColibriChannelsInfo());
-
-        //logger.info("Remove SSRC " + sourceJingleSession.getAddress());
         
         String endpoint = sourceJingleSession.getAddress().split("/")[1];
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +endpoint +", Message:"+" Remove SSRC " + sourceJingleSession.getAddress());
         
+   	    String room = roomName.substring(0,roomName.indexOf('@'));
+        
+        logger.audit("room-id=" +room + ", routing_id=" +endpoint +", Code=Info, Action=MemberLeaving,  Message="+" Remove SSRC " + sourceJingleSession.getAddress());
         
         for (Participant peer : participants)
         {
@@ -1717,7 +1773,7 @@ public class JitsiMeetConference
             if (jingleSessionToNotify == null)
             {
                 logger.warn(
-                    "Remove source: no jingle session for "
+                    "Code=Warning, Remove source: no jingle session for "
                         + peer.getChatMember().getContactAddress());
 
                 peer.scheduleSSRCsToRemove(ssrcsToRemove);
@@ -1785,7 +1841,7 @@ public class JitsiMeetConference
                 }
                 catch (Exception e)
                 {
-                    logger.error("Error copying source group extension");
+                    logger.error("Code=Error, Error copying source group extension");
                 }
             }
         }
@@ -1827,7 +1883,7 @@ public class JitsiMeetConference
         ChatRoomMember member = findMember(from);
         if (member == null)
         {
-            logger.error("No member found for address: " + from);
+            logger.error("Code=Error, No member found for address: " + from);
             return State.OFF;
         }
         if (ChatRoomMemberRole.MODERATOR.compareTo(member.getRole()) < 0)
@@ -1931,7 +1987,7 @@ public class JitsiMeetConference
         if (principal == null)
         {
             logger.error(
-                "Failed to perform mute operation - " + fromJid
+                "Code=Error, Failed to perform mute operation - " + fromJid
                     +" not exists in the conference.");
             return false;
         }
@@ -1941,14 +1997,14 @@ public class JitsiMeetConference
                 principal.getChatMember().getRole()) < 0)
         {
             logger.error(
-                "Permission denied for mute operation from " + fromJid);
+                "Code=Error, Permission denied for mute operation from " + fromJid);
             return false;
         }
 
         Participant participant = findParticipantForRoomJid(toBeMutedJid);
         if (participant == null)
         {
-            logger.error("Participant for jid: " + toBeMutedJid + " not found");
+            logger.error("Code=Error, Participant for jid: " + toBeMutedJid + " not found");
             return false;
         }
 

@@ -24,6 +24,7 @@ import net.java.sip.communicator.util.*;
 
 import org.jitsi.impl.protocol.xmpp.extensions.*;
 import org.jitsi.jicofo.*;
+import org.jitsi.jicofo.xmpp.FocusComponent;
 import org.jitsi.protocol.xmpp.util.*;
 import org.jivesoftware.smack.packet.*;
 
@@ -98,8 +99,14 @@ public abstract class AbstractOperationSetJingle
     	String split[] = address.split("/");
     	
     	
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +split[0]  + ", RoutingID :" +split[1] +", Message:"+"INVITE PEER: " + address);
+        //logger.audit("Code= Info, Action= Invite Peer"+", MucID:" +split[0]  + ", RoutingID :" +split[1] +", Message:"+"INVITE PEER: " + address);
 
+	    String room = split[0].substring(0,split[0].indexOf('@'));
+    	
+        logger.audit("room-id=" +room + ", routing_id=" +split[1]
+        		+", Code=Info, Action=InvitePeer, "
+        		+ " Message="+"INVITE PEER: " + address);
+        
     	
        // logger.info("INVITE PEER: " + address);
 
@@ -203,7 +210,7 @@ public abstract class AbstractOperationSetJingle
 
         if (JingleAction.SESSION_ACCEPT.equals(action))
         {
-            logger.info(session.getAddress() + " real jid: " + iq.getFrom());
+            //logger.info(session.getAddress() + " real jid: " + iq.getFrom());
             requestHandler.onSessionAccept(
                 session, iq.getContentList());
         }
@@ -272,7 +279,7 @@ public abstract class AbstractOperationSetJingle
                 }
                 catch (Exception e)
                 {
-                    logger.error("Copy SSRC error", e);
+                    logger.error("Code=Error, Copy SSRC error", e);
                 }
             }
 
@@ -317,7 +324,7 @@ public abstract class AbstractOperationSetJingle
                     }
                     catch (Exception e)
                     {
-                        logger.error("Copy SSRC GROUP error", e);
+                        logger.error("Code=Error, Copy SSRC GROUP error", e);
                     }
                 }
             }
@@ -334,8 +341,16 @@ public abstract class AbstractOperationSetJingle
         
         String split[] = session.getAddress().split("/");
         
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +split[0] + ", RoutingID :" +split[1] +", Message:"+"Notify add SSRC" + session.getAddress()
+        /*logger.audit("Code= Info, Action= Member Joined"+", MucID:" +split[0] + ", RoutingID :" +split[1] +", Message:"+"Notify add SSRC" + session.getAddress()
                              + " SID: " + peerSid);
+        */
+        
+        String room = split[0].substring(0,split[0].indexOf('@'));
+    	
+        logger.audit("room-id=" +room + ", routing_id=" +split[1]
+        		+", Code=Info, Action=MemberJoining, "
+        		+ " Message="+"Notify add SSRC" + session.getAddress()+ " SID: " + peerSid);
+        
 
         getConnection().sendPacket(addSourceIq);
     }
@@ -383,7 +398,7 @@ public abstract class AbstractOperationSetJingle
                 }
                 catch (Exception e)
                 {
-                    logger.error("Copy SSRC error", e);
+                    logger.error("Code=Error, Copy SSRC error", e);
                 }
             }
 
@@ -428,7 +443,7 @@ public abstract class AbstractOperationSetJingle
                     }
                     catch (Exception e)
                     {
-                        logger.error("Copy SSRC GROUP error", e);
+                        logger.error("Code=Error, Copy SSRC GROUP error", e);
                     }
                 }
             }
@@ -444,8 +459,15 @@ public abstract class AbstractOperationSetJingle
 */
         String split[] = session.getAddress().split("/");
         
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +split[0]+ ", RoutingID :" +split[1] +", Message:"+" Notify remove SSRC " + session.getAddress()
-         + " SID: " + peerSid);
+       /* logger.audit("Code= Info, Action= Member Left"+", MucID:" +split[0]+ ", RoutingID :" +split[1] +", Message:"+" Notify remove SSRC " + session.getAddress()
+         + " SID: " + peerSid);*/
+        
+        
+        String room = split[0].substring(0,split[0].indexOf('@'));
+    	
+        logger.audit("room-id=" +room + ", routing_id=" +split[1]
+        		+", Code=Info, Action=MemberLeaving, "
+        		+ " Message="+" Notify remove SSRC " + session.getAddress()+ " SID: " + peerSid);
         
         
         XmppConnection connection = getConnection();

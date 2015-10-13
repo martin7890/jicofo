@@ -70,6 +70,10 @@ public class FocusComponent
      * recognize real focus of the conference.
      */
     private final String focusAuthJid;
+    
+    private static String focusId ;
+    
+    
 
     /**
      * Optional password for focus user authentication. If authenticated login
@@ -80,7 +84,11 @@ public class FocusComponent
      * an admin then will refuse to join MUC room.
      */
 
-    /**
+    public static String getFocusId() {
+		return focusId;
+	}
+
+	/**
      * The manager object that creates and expires
      * {@link org.jitsi.jicofo.JitsiMeetConference}s.
      */
@@ -110,6 +118,7 @@ public class FocusComponent
 
         this.isFocusAnonymous = anonymousFocus;
         this.focusAuthJid = focusAuthJid;
+        focusId = focusAuthJid;
         this.shutdownAllowedJid
             = FocusBundleActivator.getConfigService()
                     .getString(SHUTDOWN_ALLOWED_JID_PNAME);
@@ -388,7 +397,7 @@ public class FocusComponent
         //logger.info("Focus request for room: " + room);
         
         
-          logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +room +  ", RoutingID :" +null +", Message:"+"Focus request for room: " + room);
+        //logger.audit("Info= code, Action= Create Conference"+", MucID:" +room + ", RoutingID : Focus - " +focusAuthJid +", Message:"+"Focus request for room: " + room);
         
         
 

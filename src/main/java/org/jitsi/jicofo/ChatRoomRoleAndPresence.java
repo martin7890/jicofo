@@ -23,6 +23,7 @@ import net.java.sip.communicator.util.*;
 import net.java.sip.communicator.util.Logger;
 import org.jitsi.jicofo.auth.*;
 import org.jitsi.jicofo.log.*;
+import org.jitsi.jicofo.xmpp.FocusComponent;
 import org.jitsi.protocol.xmpp.*;
 import org.jitsi.util.*;
 import org.jitsi.videobridge.eventadmin.*;
@@ -155,9 +156,21 @@ public class ChatRoomRoleAndPresence
     @Override
     public void memberPresenceChanged(ChatRoomMemberPresenceChangeEvent evt)
     {
-       // logger.info("Chat room event " + evt);
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:"+ this.chatRoom.getName() + ", RoutingID :" +null +", Message:"+" Chat room event " + evt);
         ChatRoomMember sourceMember = evt.getChatRoomMember();
+    	
+    	String endpoint = sourceMember.getContactAddress().split("/")[1];
+        
+    	String room = this.chatRoom.getName().substring(0,this.chatRoom.getName().indexOf('@'));
+    	
+        /*logger.audit("room-id=" +room + ", routing_id=" +FocusComponent.getFocusId()
+        		+", Code=Info, Action=MemberPresenceChange, "
+        		+ " Message="+" Chat room event " + evt);*/
+    	
+    	//logger.info("####"+endpoint);
+    	
+    	logger.audit("room-id=" +room + ", routing_id=" +endpoint
+		+", Code=Info, Action=MemberPresenceChange, "
+		+ " Message="+" Chat room event " + evt);
 
         String eventType = evt.getEventType();
         if (ChatRoomMemberPresenceChangeEvent.MEMBER_JOINED.equals(eventType))
@@ -178,20 +191,30 @@ public class ChatRoomRoleAndPresence
         {
             if (owner == sourceMember)
             {
-                //logger.info("Owner has left the room !");
-            	//logger.audit("Owner has left the room !");
-            	logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" + chatRoom.getName()  + ", RoutingID :" + sourceMember +", Message: Owner has left the room !");
+                logger.audit("room-id=" +room + ", routing_id=" +endpoint
+                		+", Code=Info, Action=Owner Leaving, "
+                		+ " Message=Owner-"+endpoint+" is leaving!");
+            	
             	
                 owner = null;
                 electNewOwner();
             }
+           
             if (ChatRoomMemberPresenceChangeEvent
                         .MEMBER_KICKED.equals(eventType))
             {
-                conference.onMemberKicked(sourceMember);
+            	for (ChatRoomMember member : chatRoom.getMembers())
+                {
+            		if (ChatRoomMemberRole.OWNER.compareTo(member.getRole()) >=0)
+	            	{	logger.audit("room-id=" +room + ", routing_id=" +endpoint +", Code=Info, Action=MemberLeaving,"
+	            			+ " Message="+endpoint+" kicked out by owner-"+member.getContactAddress().split("/")[1]+"."); 
+	                	conference.onMemberKicked(sourceMember);
+	            	}
+	            }
             }
             else
             {
+                logger.audit("room-id=" +room + ", routing_id=" +endpoint +", Code=Info, Action=MemberLeaving, Message="+endpoint+" hung up.");
                 conference.onMemberLeft(sourceMember);
             }
         }
@@ -234,9 +257,10 @@ public class ChatRoomRoleAndPresence
             // role based on who enters first, but who is an authenticated user
             return;
         }
-
+        
         for (ChatRoomMember member : chatRoom.getMembers())
         {
+        	logger.info("The focus will elect a new owner");
             if (conference.isFocusMember(member)
                 || conference.isSipGateway(member))
             {
@@ -257,10 +281,11 @@ public class ChatRoomRoleAndPresence
                 {
                     chatRoom.grantOwnership(
                             ((XmppChatMember)member).getJabberID());
-
-                    logger.info(
-                            "Granted owner to " + member.getContactAddress());
-
+                    
+                    String room =chatRoom.getName().substring(0,chatRoom.getName().indexOf('@'));
+                    String endpoint = member.getContactAddress().split("/")[1];
+                    
+                    logger.audit("room-id=" +room + ", routing_id=" +endpoint +", Code=Info, Action=GrantingNewOwner, Message=Granted owner to " + endpoint+".");
                     owner = member;
                     break;
                 }
@@ -309,10 +334,9 @@ public class ChatRoomRoleAndPresence
     @Override
     public void localUserRoleChanged(ChatRoomLocalUserRoleChangeEvent evt)
     {
-        /*logger.info(
-            "Focus role: " + evt.getNewRole() + " init: " + evt.isInitial());
-*/
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MUC ID:" +this.chatRoom.getName() + ", Routing ID :" +null +", Message:"+" Focus role: " + evt.getNewRole() + " init: " + evt.isInitial());
+        String room = this.chatRoom.getName().substring(0,this.chatRoom.getName().indexOf('@'));
+        
+        logger.audit("room-id=" +room + ", routing_id=" +FocusComponent.getFocusId() +", Code=Info, Action=MemberRoleChange, Message="+" Focus role: " + evt.getNewRole() + " init: " + evt.isInitial());
         
         focusRole = evt.getNewRole();
         if (!verifyFocusRole())

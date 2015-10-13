@@ -24,6 +24,7 @@ import net.java.sip.communicator.util.*;
 import net.java.sip.communicator.util.Logger;
 
 import org.jitsi.jicofo.log.*;
+import org.jitsi.jicofo.xmpp.FocusComponent;
 import org.jitsi.protocol.*;
 import org.jitsi.protocol.xmpp.*;
 import org.jitsi.service.configuration.*;
@@ -234,6 +235,7 @@ public class FocusManager
      * @param properties configuration properties map included in the request.
      * @return <tt>true</tt> if conference focus is in the room and ready to
      *         handle session participants.
+     *
      * @throws Exception if for any reason we have failed to create
      *                   the conference
      */
@@ -292,14 +294,20 @@ public class FocusManager
                         + " options:" + options.toString());*/
         
 
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:"
-        			+room + ", RoutingID :" +null +", Message:"+
+        
+       /* logger.audit("Code= Info, Action= Create Conference"+", room-id="
+        			+room + ", RoutingID : Focus - "+FocusComponent.getFocusId()  +", Message:"+
         			  "Created new focus for " + room + "@" + focusUserDomain
         			 + " conferences count: " + conferences.size()
         			 + " options:" + options.toString());
-
+*/
+        
+        String roomName = room.substring(0,room.indexOf('@'));
         
         
+        logger.audit("room-id=" +roomName + ", routing_id=" +FocusComponent.getFocusId() +", Code=Info, Action=CreateConference, Message="+"Created new focus for " + room + "@" + focusUserDomain
+        			 + " conferences count: " + conferences.size()
+        			 + " options:" + options.toString());
         
         
 
@@ -318,17 +326,9 @@ public class FocusManager
         }
         catch (Exception e)
         {
-            logger.info("Exception while trying to start the conference", e);
+            logger.info("Code=Error, Exception while trying to start the conference", e);
 
-            // stop() method is called by the conference automatically in order
-            // to not release the lock on JitsiMeetConference instance and avoid
-            // a deadlock. It may happen when this thread is about to call
-            // conference.stop() and another thread has entered the method
-            // before us. That other thread will try to call
-            // FocusManager.conferenceEnded, but we're still holding the lock
-            // on FocusManager instance.
-
-            //conference.stop();
+            conference.stop();
 
             throw e;
         }
@@ -363,12 +363,20 @@ public class FocusManager
 
         conferences.remove(roomName);
 
-      /*  logger.info(
+        /*  logger.info(
             "Disposed conference for room: " + roomName
             + " conference count: " + conferences.size());*/
 
-        logger.audit("RTCServer:" +System.getProperty(FocusManager.HOSTNAME_PNAME)+", MucID:" +roomName + ", RoutingID :" +null +", Message:"+" Disposed conference for room: " + roomName
+        /*logger.audit("Code= Info, Action= End Conference"+", room-id=" +roomName + ", RoutingID :" +FocusComponent.getFocusId() +", Message="+" Disposed conference for room: " + roomName
+                + " conference count: " + conferences.size());*/
+        
+        String roomNameNew = roomName.substring(0,roomName.indexOf('@'));
+        
+        
+        logger.audit("room-id=" +roomNameNew + ", routing_id=" +FocusComponent.getFocusId() +", Code=Info, Action=EndConference, Message="+" Disposed conference for room: " + roomName
                 + " conference count: " + conferences.size());
+                
+        
         
         if (focusAllocListener != null)
         {

@@ -71,7 +71,7 @@ public class OperationSetColibriConferenceImpl
     public ColibriConference createNewConference()
     {
         ColibriConference conf = new ColibriConferenceImpl(connection);
-        logger.info("Conference created: " + conf);
+        //logger.info("Conference created: " + conf);
         return conf;
     }
 }
