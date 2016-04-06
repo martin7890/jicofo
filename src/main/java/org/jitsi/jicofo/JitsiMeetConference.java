@@ -26,18 +26,21 @@ import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
 import net.java.sip.communicator.util.Logger;
 
+import org.jitsi.assertions.*;
 import org.jitsi.impl.protocol.xmpp.extensions.*;
+import org.jitsi.jicofo.discovery.*;
+import org.jitsi.jicofo.event.*;
 import org.jitsi.jicofo.log.*;
-import org.jitsi.jicofo.recording.*;
 import org.jitsi.jicofo.reservation.*;
 import org.jitsi.jicofo.util.*;
-import org.jitsi.protocol.*;
 import org.jitsi.protocol.xmpp.*;
 import org.jitsi.protocol.xmpp.colibri.*;
 import org.jitsi.protocol.xmpp.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-import org.jitsi.videobridge.eventadmin.*;
+import org.jitsi.eventadmin.*;
+
+import org.osgi.framework.*;
 
 import java.text.*;
 import java.util.*;
@@ -56,8 +59,8 @@ import java.util.concurrent.*;
  */
 public class JitsiMeetConference
     implements RegistrationStateChangeListener,
-               JingleRequestHandler
-
+               JingleRequestHandler,
+               EventHandler
 {
     /**
      * The logger instance used by this class.
@@ -106,10 +109,32 @@ public class JitsiMeetConference
     private final JitsiMeetConfig config;
 
     /**
+     * The instance of global configuration.
+     */
+    private final JitsiMeetGlobalConfig globalConfig;
+
+    /**
      * XMPP protocol provider handler used by the focus.
      */
-    private ProtocolProviderHandler protocolProviderHandler
-        = new ProtocolProviderHandler();
+    private final ProtocolProviderHandler protocolProviderHandler;
+
+    /**
+     * Indicates if the bridge used in this conference is faulty. We use this
+     * flag to skip channel expiration step when conference is being disposed.
+     */
+    private boolean bridgeHasFailed;
+
+    /**
+     * Synchronization root for currently selected bridge for the
+     * {@link #colibriConference}.
+     */
+    private final Object bridgeSelectSync = new Object();
+
+    /**
+     * The instance of <tt>BridgeSelector</tt> we use to select JVB for this
+     * conference.
+     */
+    private BridgeSelector bridgeSelector;
 
     /**
      * The name of XMPP user used by the focus to login.
@@ -124,7 +149,7 @@ public class JitsiMeetConference
     /**
      * Conference room chat instance.
      */
-    private ChatRoom chatRoom;
+    private ChatRoom2 chatRoom;
 
     /**
      * Operation set used to handle Jingle sessions with conference peers.
@@ -150,19 +175,18 @@ public class JitsiMeetConference
     /**
      * The list of active conference participants.
      */
-    private final List<Participant> participants
-        = new CopyOnWriteArrayList<Participant>();
+    private final List<Participant> participants = new CopyOnWriteArrayList<>();
+
+    /**
+     * Takes care of conference recording.
+     */
+    private JitsiMeetRecording recording;
 
     /**
      * Information about Jitsi Meet conference services like videobridge,
      * SIP gateway, Jirecon.
      */
     private JitsiMeetServices services;
-
-    /**
-     * Recording functionality implementation.
-     */
-    private Recorder recorder;
 
     /**
      * Chat room roles and presence handler.
@@ -195,6 +219,11 @@ public class JitsiMeetConference
     private final String etherpadName;
 
     /**
+     * Bridge <tt>EventHandler</tt> registration.
+     */
+    private ServiceRegistration<EventHandler> eventHandlerRegistration;
+
+    /**
      * Creates new instance of {@link JitsiMeetConference}.
      *
      * @param roomName name of MUC room that is hosting the conference.
@@ -202,13 +231,17 @@ public class JitsiMeetConference
      * @param listener the listener that will be notified about this instance
      *        events.
      * @param config the conference configuration instance.
+     * @param globalConfig an instance of the global config service.
      */
-    public JitsiMeetConference(String roomName,
-                               String focusUserName,
-                               ProtocolProviderHandler protocolProviderHandler,
-                               ConferenceListener listener,
-                               JitsiMeetConfig config)
+    public JitsiMeetConference(String                   roomName,
+                               String                   focusUserName,
+                               ProtocolProviderHandler  protocolProviderHandler,
+                               ConferenceListener       listener,
+                               JitsiMeetConfig          config,
+                               JitsiMeetGlobalConfig    globalConfig)
     {
+        Assert.notNull(protocolProviderHandler, "protocolProviderHandler");
+
         this.id = ID_DATE_FORMAT.format(new Date()) + "_" + hashCode();
         this.roomName = roomName;
         this.focusUserName = focusUserName;
@@ -216,13 +249,17 @@ public class JitsiMeetConference
         this.protocolProviderHandler = protocolProviderHandler;
         this.listener = listener;
         this.config = config;
+        this.globalConfig = globalConfig;
     }
 
     /**
      * Starts conference focus processing, bind listeners and so on...
      *
      * @throws Exception if error occurs during initialization. Instance is
-     *         considered broken in that case.
+     *         considered broken in that case. It's stop method will be called
+     *         before throwing the exception to perform deinitialization where
+     *         possible. {@link ConferenceListener}s will be notified that this
+     *         conference has ended.
      */
     public synchronized void start()
         throws Exception
@@ -232,45 +269,95 @@ public class JitsiMeetConference
 
         started = true;
 
-        colibri
-            = protocolProviderHandler.getOperationSet(
-                    OperationSetColibriConference.class);
-
-        jingle
-            = protocolProviderHandler.getOperationSet(
-                    OperationSetJingle.class);
-
-        chatOpSet
-            = protocolProviderHandler.getOperationSet(
-                    OperationSetMultiUserChat.class);
-
-        meetTools
-            = protocolProviderHandler.getOperationSet(
-                    OperationSetJitsiMeetTools.class);
-
-        services
-            = ServiceUtils.getService(
-                    FocusBundleActivator.bundleContext,
-                    JitsiMeetServices.class);
-
-        // Set pre-configured videobridge
-        services.getBridgeSelector()
-            .setPreConfiguredBridge(config.getPreConfiguredVideobridge());
-
-        // Set pre-configured SIP gateway
-        if (config.getPreConfiguredSipGateway() != null)
+        try
         {
-            services.setSipGateway(config.getPreConfiguredSipGateway());
+            colibri
+                = protocolProviderHandler.getOperationSet(
+                        OperationSetColibriConference.class);
+            jingle
+                = protocolProviderHandler.getOperationSet(
+                        OperationSetJingle.class);
+            chatOpSet
+                = protocolProviderHandler.getOperationSet(
+                        OperationSetMultiUserChat.class);
+            meetTools
+                = protocolProviderHandler.getOperationSet(
+                        OperationSetJitsiMeetTools.class);
+
+            BundleContext osgiCtx = FocusBundleActivator.bundleContext;
+
+            services
+                = ServiceUtils.getService(osgiCtx, JitsiMeetServices.class);
+
+            recording = new JitsiMeetRecording(this, services);
+
+            bridgeSelector = services.getBridgeSelector();
+
+            // Set pre-configured videobridge
+            String preConfiguredBridge = config.getPreConfiguredVideobridge();
+
+            if (!StringUtils.isNullOrEmpty(preConfiguredBridge))
+            {
+                bridgeSelector.setPreConfiguredBridge(
+                        preConfiguredBridge);
+            }
+
+            // Set pre-configured SIP gateway
+            //if (config.getPreConfiguredSipGateway() != null)
+            //{
+            //    services.setSipGateway(config.getPreConfiguredSipGateway());
+            //}
+
+            if (protocolProviderHandler.isRegistered())
+            {
+                joinTheRoom();
+            }
+
+            protocolProviderHandler.addRegistrationListener(this);
+
+            idleTimestamp = System.currentTimeMillis();
+
+            // Register for bridge events
+            eventHandlerRegistration
+                = EventUtil.registerEventHandler(
+                    osgiCtx, new String[] { BridgeEvent.BRIDGE_DOWN }, this);
+        }
+        catch(Exception e)
+        {
+            this.stop();
+
+            throw e;
+        }
+    }
+
+    /**
+     * Stops the conference, disposes colibri channels and releases all
+     * resources used by the focus.
+     */
+    synchronized void stop()
+    {
+        if (!started)
+            return;
+
+        started = false;
+
+        if (eventHandlerRegistration != null)
+        {
+            eventHandlerRegistration.unregister();
+            eventHandlerRegistration = null;
         }
 
-        if (protocolProviderHandler.isRegistered())
-        {
-            joinTheRoom();
-        }
+        protocolProviderHandler.removeRegistrationListener(this);
 
-        protocolProviderHandler.addRegistrationListener(this);
+        disposeConference();
 
-        idleTimestamp = System.currentTimeMillis();
+        leaveTheRoom();
+
+        if (jingle != null)
+            jingle.terminateHandlersSessions(this);
+
+        if (listener != null)
+            listener.conferenceEnded(this);
     }
 
     /**
@@ -291,7 +378,7 @@ public class JitsiMeetConference
     {
         logger.info("Joining the room: " + roomName);
 
-        chatRoom = chatOpSet.findRoom(roomName);
+        chatRoom = (ChatRoom2) chatOpSet.findRoom(roomName);
 
         rolesAndPresence = new ChatRoomRoleAndPresence(this, chatRoom);
         rolesAndPresence.init();
@@ -301,56 +388,20 @@ public class JitsiMeetConference
         // Advertise shared Etherpad document
         meetTools.sendPresenceExtension(
             chatRoom, EtherpadPacketExt.forDocumentName(etherpadName));
-    }
 
-    private OperationSetDirectSmackXmpp getDirectXmppOpSet()
-    {
-        return protocolProviderHandler.getOperationSet(
-            OperationSetDirectSmackXmpp.class);
-    }
+        // init recorder
+        if (recording != null)
+            recording.init();
 
-    /**
-     * Lazy initializer for {@link #recorder}. If there is Jirecon component
-     * service available then {@link JireconRecorder} is used. Otherwise we fall
-     * back to direct videobridge communication through {@link JvbRecorder}.
-     *
-     * @return {@link Recorder} implementation used by this instance.
-     */
-    private Recorder getRecorder()
-    {
-        if (recorder == null)
+        // Trigger focus joined room event
+        EventAdmin eventAdmin = FocusBundleActivator.getEventAdmin();
+        if (eventAdmin != null)
         {
-            OperationSetDirectSmackXmpp xmppOpSet
-                = protocolProviderHandler.getOperationSet(
-                        OperationSetDirectSmackXmpp.class);
-
-            String recorderService = services.getJireconRecorder();
-            if (!StringUtils.isNullOrEmpty(recorderService))
-            {
-                recorder
-                    = new JireconRecorder(
-                            getFocusJid(),
-                            services.getJireconRecorder(), xmppOpSet);
-            }
-            else
-            {
-                logger.warn("No recorder service discovered - using JVB");
-
-                String videobridge = colibriConference.getJitsiVideobridge();
-                if (StringUtils.isNullOrEmpty(videobridge))
-                {
-                    logger.error(
-                        "Unable to create JVB recorder - conferenc enot started yet.");
-                    return null;
-                }
-
-                recorder
-                    = new JvbRecorder(
-                            colibriConference.getConferenceId(),
-                            videobridge, xmppOpSet);
-            }
+            eventAdmin.sendEvent(
+                    EventFactory.focusJoinedRoom(
+                            roomName,
+                            getId()));
         }
-        return recorder;
     }
 
     /**
@@ -403,6 +454,9 @@ public class JitsiMeetConference
             colibriConference = colibri.createNewConference();
 
             colibriConference.setConfig(config);
+
+            String roomName = MucUtil.extractName(chatRoom.getName());
+            colibriConference.setName(roomName);
         }
 
         // Invite all not invited yet
@@ -410,8 +464,10 @@ public class JitsiMeetConference
         {
             for (final ChatRoomMember member : chatRoom.getMembers())
             {
-                final boolean[] startMuted = hasToStartMuted(member,
-                    member == chatRoomMember);
+                final boolean[] startMuted
+                    = hasToStartMuted(
+                            member, member == chatRoomMember /* justJoined */);
+
                 inviteChatMember(member, startMuted);
             }
         }
@@ -431,8 +487,8 @@ public class JitsiMeetConference
      * @param startMuted array with values for audio and video that indicates
      * whether the participant should start muted.
      */
-    private void inviteChatMember(final ChatRoomMember chatRoomMember,
-        final boolean[] startMuted)
+    private void inviteChatMember(final ChatRoomMember    chatRoomMember,
+                                  final boolean[]         startMuted)
     {
         if (isFocusMember(chatRoomMember))
             return;
@@ -445,7 +501,10 @@ public class JitsiMeetConference
         if (findParticipantForChatMember(chatRoomMember) != null)
             return;
 
-        newParticipant = new Participant((XmppChatMember) chatRoomMember);
+        newParticipant
+            = new Participant(
+                    (XmppChatMember) chatRoomMember,
+                    globalConfig.getMaxSSRCsPerUser());
 
         participants.add(newParticipant);
 
@@ -481,8 +540,8 @@ public class JitsiMeetConference
      * participant have to start video or audio muted. The first element
      * should be associated with the audio and the second with video.
      */
-    private final boolean[] hasToStartMuted(ChatRoomMember member,
-        boolean justJoined)
+    private final boolean[] hasToStartMuted(ChatRoomMember    member,
+                                            boolean           justJoined)
     {
         final boolean[] startMuted = new boolean[] {false, false};
         if(this.startMuted != null && this.startMuted[0] && justJoined)
@@ -506,7 +565,6 @@ public class JitsiMeetConference
             participantNumber = participants.size();
         }
 
-
         if(!startMuted[0])
         {
             Integer startAudioMuted = this.config.getAudioMuted();
@@ -524,7 +582,6 @@ public class JitsiMeetConference
                 startMuted[1] = (participantNumber > startVideoMuted);
             }
         }
-
 
         return startMuted;
     }
@@ -545,7 +602,7 @@ public class JitsiMeetConference
         // Feature discovery
         List<String> features
             = DiscoveryUtil.discoverParticipantFeatures(
-            getXmppProvider(), address);
+                    getXmppProvider(), address);
 
         newParticipant.setSupportedFeatures(features);
 
@@ -571,7 +628,7 @@ public class JitsiMeetConference
             logger.error("Failed to allocate channels for " + address, e);
 
             // Notify users about bridge is down event
-            if (BRIDGE_FAILURE_ERR_CODE == e.getErrorCode())
+            if (BRIDGE_FAILURE_ERR_CODE == e.getErrorCode() && chatRoom != null)
             {
                 meetTools.sendPresenceExtension(
                     chatRoom, new BridgeIsDownPacketExt());
@@ -587,24 +644,38 @@ public class JitsiMeetConference
            - we have managed to send Jingle session-initiate
            Otherwise we expire allocated channels.
         */
-        if (chatRoom == null ||
-            findMember(address) == null ||
-            !jingle.initiateSession(
-                newParticipant.hasBundleSupport(), address, offer, this,
-                startMuted))
+        boolean expireChannels = false;
+
+        if (chatRoom == null)
         {
-            if (chatRoom == null)
-            {
-                // Conference disposed
-                logger.info(
-                    "Expiring " + address + " channels - conference disposed");
-            }
-            else
-            {
-                // Participant has left the room
-                logger.info(
-                    "Expiring " + address + " channels - participant has left");
-            }
+            // Conference disposed
+            logger.info(
+                "Expiring " + address + " channels - conference disposed");
+
+            expireChannels = true;
+        }
+        else if (findMember(address) == null)
+        {
+            // Participant has left the room
+            logger.info(
+                "Expiring " + address + " channels - participant has left");
+
+            expireChannels = true;
+        }
+        else if (!jingle.initiateSession(
+                     newParticipant.hasBundleSupport(), address, offer, this,
+                     startMuted))
+        {
+            // Failed to invite
+            logger.info(
+                "Expiring " + address +
+                    " channels - no RESULT for session-invite");
+
+            expireChannels = true;
+        }
+
+        if (expireChannels)
+        {
             conference.expireChannels(
                 newParticipant.getColibriChannelsInfo());
         }
@@ -625,7 +696,8 @@ public class JitsiMeetConference
      *         using existing bridge and we can not switch to another bridge.
      */
     private ColibriConferenceIQ allocateChannels(
-            Participant peer, List<ContentPacketExtension> contents)
+            Participant                     peer,
+            List<ContentPacketExtension>    contents)
         throws OperationFailedException
     {
         // This method is executed on thread pool.
@@ -640,33 +712,50 @@ public class JitsiMeetConference
             return null;
         }
 
-        // Allocate by trying all bridges on prioritized list
-        BridgeSelector bridgeSelector = services.getBridgeSelector();
-
-        Iterator<String> bridgesIterator
-            = bridgeSelector.getPrioritizedBridgesList().iterator();
-
         // Set initial bridge if we haven't used any yet
-        if (StringUtils.isNullOrEmpty(colibriConference.getJitsiVideobridge()))
+        synchronized (bridgeSelectSync)
         {
-            if (!bridgesIterator.hasNext())
+            if (StringUtils.isNullOrEmpty(
+                    colibriConference.getJitsiVideobridge()))
             {
-                throw new OperationFailedException(
-                    "Failed to allocate channels - no bridge configured",
-                    OperationFailedException.GENERAL_ERROR);
-            }
+                String bridge = null;
 
-            colibriConference.setJitsiVideobridge(
-                bridgesIterator.next());
+                if (!StringUtils.isNullOrEmpty(config.getEnforcedVideobridge()))
+                {
+                    bridge = config.getEnforcedVideobridge();
+                    logger.info(
+                        "Will force bridge: " + bridge
+                            + " on: " + getRoomName());
+                }
+                else
+                {
+                    bridge = bridgeSelector.selectVideobridge();
+                }
+
+                if (StringUtils.isNullOrEmpty(bridge))
+                {
+                    throw new OperationFailedException(
+                        "Failed to allocate channels - no bridge configured",
+                        BRIDGE_FAILURE_ERR_CODE);
+                }
+
+                colibriConference.setJitsiVideobridge(bridge);
+            }
         }
+
+        String jvb = null;
 
         while (this.colibriConference != null)
         {
             try
             {
+                synchronized (bridgeSelectSync)
+                {
+                    jvb = colibriConference.getJitsiVideobridge();
+                }
+
                 logger.info(
-                    "Using " + colibriConference.getJitsiVideobridge()
-                        + " to allocate channels for: "
+                    "Using " + jvb + " to allocate channels for: "
                         + peer.getChatMember().getContactAddress());
 
                 ColibriConferenceIQ peerChannels
@@ -675,8 +764,7 @@ public class JitsiMeetConference
                             peer.getEndpointId(),
                             true, contents);
 
-                bridgeSelector.updateBridgeOperationalStatus(
-                    colibriConference.getJitsiVideobridge(), true);
+                bridgeSelector.updateBridgeOperationalStatus(jvb, true);
 
                 if (colibriConference.hasJustAllocated())
                 {
@@ -689,21 +777,20 @@ public class JitsiMeetConference
                                     colibriConference.getConferenceId(),
                                     roomName,
                                     getId(),
-                                    colibriConference.getJitsiVideobridge()));
+                                    jvb));
                     }
+
+                    if (recording != null)
+                        recording.onConferenceAllocated();
                 }
                 return peerChannels;
             }
             catch(OperationFailedException exc)
             {
-                String faultyBridge = colibriConference.getJitsiVideobridge();
-
                 logger.error(
-                    "Failed to allocate channels using bridge: "
-                        + colibriConference.getJitsiVideobridge(), exc);
+                    "Failed to allocate channels using bridge: " + jvb, exc);
 
-                bridgeSelector.updateBridgeOperationalStatus(
-                    faultyBridge, false);
+                bridgeSelector.updateBridgeOperationalStatus(jvb, false);
 
                 // Check if the conference is in progress
                 if (!StringUtils.isNullOrEmpty(
@@ -715,25 +802,36 @@ public class JitsiMeetConference
                 }
 
                 // Try next bridge
-                String nextBridge = null;
-                if (bridgesIterator.hasNext())
-                    nextBridge = bridgesIterator.next();
-
-                // Is it the same which has just failed ?
-                // (we do not always call iterator.next() at the beginning)
-                if (faultyBridge.equals(nextBridge))
-                    nextBridge = null;
-
-                if (nextBridge != null)
+                synchronized (bridgeSelectSync)
                 {
-                    colibriConference.setJitsiVideobridge(nextBridge);
-                }
-                else
-                {
-                    // No more bridges to try
-                    throw new OperationFailedException(
-                        "Failed to allocate channels - all bridges are faulty",
-                        BRIDGE_FAILURE_ERR_CODE);
+                    if (StringUtils.isNullOrEmpty(
+                            config.getEnforcedVideobridge()))
+                    {
+                        jvb = bridgeSelector.selectVideobridge();
+                    }
+                    else
+                    {
+                        // If the "enforced" bridge has failed we do not try
+                        // any other bridges, but fail immediately
+                        jvb = null;
+                    }
+
+                    // Is it the same which has just failed ?
+                    // (we do not always call iterator.next() at the beginning)
+                    //if (faultyBridge.equals(nextBridge))
+                    //    nextBridge = null;
+                    if (!StringUtils.isNullOrEmpty(jvb))
+                    {
+                        colibriConference.setJitsiVideobridge(jvb);
+                    }
+                    else
+                    {
+                        // No more bridges to try
+                        throw new OperationFailedException(
+                            "Failed to allocate channels " +
+                                "- all bridges are faulty",
+                                BRIDGE_FAILURE_ERR_CODE);
+                    }
                 }
             }
         }
@@ -757,8 +855,7 @@ public class JitsiMeetConference
     private List<ContentPacketExtension> createOffer(Participant peer)
         throws OperationFailedException
     {
-        List<ContentPacketExtension> contents
-            = new ArrayList<ContentPacketExtension>();
+        List<ContentPacketExtension> contents = new ArrayList<>();
 
         boolean disableIce = !peer.hasIceSupport();
         boolean useDtls = peer.hasDtlsSupport();
@@ -1065,16 +1162,20 @@ public class JitsiMeetConference
      */
     private void disposeConference()
     {
-        // FIXME: Does it make sense to put recorder here ?
-        if (recorder != null)
+        // We dispose the recorder here as the recording session is usually
+        // bound to Colibri conference instance which will be invalid once we
+        // dispose/expire the conference on the bridge
+        // FIXME re-init recorder after ICE restart
+        if (recording != null)
         {
-            recorder.dispose();
-            recorder = null;
+            recording.dispose();
         }
 
         if (colibriConference != null)
         {
-            if (protocolProviderHandler.isRegistered())
+            // We will not expire channels if the bridge is faulty or
+            // when our connection is down
+            if (!bridgeHasFailed && protocolProviderHandler.isRegistered())
             {
                 colibriConference.expireConference();
             }
@@ -1130,19 +1231,21 @@ public class JitsiMeetConference
             {
                 logger.info("Hanging up member " + contactAddress);
 
+                jingle.terminateSession(peerJingleSession, Reason.GONE);
+
                 removeSSRCs(peerJingleSession,
                         leftPeer.getSSRCsCopy(),
-                        leftPeer.getSSRCGroupsCopy());
+                        leftPeer.getSSRCGroupsCopy(),
+                        false /* no JVB update - will expire */);
 
                 ColibriConferenceIQ peerChannels
                         = leftPeer.getColibriChannelsInfo();
-                if (peerChannels != null)
+                if (!bridgeHasFailed && peerChannels != null)
                 {
                     logger.info("Expiring channels for: " + contactAddress);
                     colibriConference.expireChannels(
                         leftPeer.getColibriChannelsInfo());
                 }
-                //jingle.terminateSession(session.getJingleSession());
             }
             boolean removed = participants.remove(leftPeer);
             logger.info(
@@ -1157,35 +1260,6 @@ public class JitsiMeetConference
         {
             stop();
         }
-    }
-
-    /**
-     * Stops the conference, disposes colibri channels and releases all
-     * resources used by the focus.
-     */
-    synchronized void stop()
-    {
-        if (!started)
-            return;
-
-        started = false;
-
-        if (protocolProviderHandler != null)
-        {
-            //FIXME: remove when leak is fixed
-            logger.info(
-                "Removing protocol listener - " + roomName
-                + ", " + this);
-            protocolProviderHandler.removeRegistrationListener(this);
-        }
-
-        disposeConference();
-
-        leaveTheRoom();
-
-        jingle.terminateHandlersSessions(this);
-
-        listener.conferenceEnded(this);
     }
 
     @Override
@@ -1221,8 +1295,8 @@ public class JitsiMeetConference
     {
         for (Participant participant : participants)
         {
-            if (participant.getChatMember()
-                .getContactAddress().equals(jingleSession.getAddress()))
+            if (participant.getChatMember().getContactAddress().equals(
+                    jingleSession.getAddress()))
                 return participant;
         }
         return null;
@@ -1250,7 +1324,7 @@ public class JitsiMeetConference
         return null;
     }
 
-    ChatRoomMemberRole getRoleForMucJid(String mucJid)
+    public ChatRoomMemberRole getRoleForMucJid(String mucJid)
     {
         for (ChatRoomMember member : chatRoom.getMembers())
         {
@@ -1286,28 +1360,44 @@ public class JitsiMeetConference
         {
             //FIXME: we should reject it ?
             logger.error(
-                "Reassigning jingle session for participant: "
+                    "Reassigning jingle session for participant: "
                         + peerJingleSession.getAddress());
         }
 
+        // XXX We will be acting on the received session-accept bellow.
+        // Unfortunately, we may have not received an acknowledgment of our
+        // session-initiate yet and whatever we do bellow will be torn down when
+        // the acknowledgement timeout occurrs later on. Since we will have
+        // acted on the session-accept by the time the acknowledgement timeout
+        // occurs, we may as well ignore the timeout.
+        peerJingleSession.setAccepted(true);
+
         participant.setJingleSession(peerJingleSession);
 
+        // Extract and store various session information in the Participant
+        participant.setRTPDescription(answer);
+        participant.addTransportFromJingle(answer);
         participant.addSSRCsFromContent(answer);
-
         participant.addSSRCGroupsFromContent(answer);
 
-        // Update SSRC groups
-        colibriConference.updateSourcesInfo(
-            participant.getSSRCsCopy(),
-            participant.getSSRCGroupsCopy(),
-            participant.getColibriChannelsInfo());
+        logger.info(
+                "Received SSRCs from " + peerJingleSession.getAddress() + " "
+                    + participant.getSSRCS());
 
-        logger.info("Got SSRCs from " + peerJingleSession.getAddress());
+        // Update channel info
+        colibriConference.updateChannelsInfo(
+                participant.getColibriChannelsInfo(),
+                participant.getRtpDescriptionMap(),
+                participant.getSSRCsCopy(),
+                participant.getSSRCGroupsCopy(),
+                participant.getBundleTransport(),
+                participant.getTransportMap());
 
         for (Participant peerToNotify : participants)
         {
             JingleSession jingleSessionToNotify
-                    = peerToNotify.getJingleSession();
+                = peerToNotify.getJingleSession();
+
             if (jingleSessionToNotify == null)
             {
                 logger.warn(
@@ -1315,9 +1405,8 @@ public class JitsiMeetConference
                         + peerToNotify.getChatMember().getContactAddress());
 
                 peerToNotify.scheduleSSRCsToAdd(participant.getSSRCS());
-
                 peerToNotify.scheduleSSRCGroupsToAdd(
-                    participant.getSSRCGroups());
+                        participant.getSSRCGroups());
 
                 continue;
             }
@@ -1327,9 +1416,9 @@ public class JitsiMeetConference
                 continue;
 
             jingle.sendAddSourceIQ(
-                participant.getSSRCS(),
-                participant.getSSRCGroups(),
-                jingleSessionToNotify);
+                    participant.getSSRCS(),
+                    participant.getSSRCGroups(),
+                    jingleSessionToNotify);
         }
 
         // Notify the peer itself since it is now stable
@@ -1351,12 +1440,6 @@ public class JitsiMeetConference
 
             participant.clearSsrcsToRemove();
         }
-
-        // Notify the bridge about eventual transport included
-        onTransportInfo(peerJingleSession, answer);
-
-        // Notify the bridge about eventual RTP description included.
-        onDescriptionInfo(peerJingleSession, answer);
     }
 
     /**
@@ -1377,61 +1460,21 @@ public class JitsiMeetConference
             return;
         }
 
+        // Participant will figure out bundle or non-bundle transport
+        // based on it's hasBundleSupport() value
+        participant.addTransportFromJingle(contentList);
+
         if (participant.hasBundleSupport())
         {
-            // Select first transport
-            IceUdpTransportPacketExtension transport = null;
-            for (ContentPacketExtension cpe : contentList)
-            {
-                IceUdpTransportPacketExtension contentTransport
-                    = cpe.getFirstChildOfType(
-                        IceUdpTransportPacketExtension.class);
-                if (contentTransport != null)
-                {
-                    transport = contentTransport;
-                    break;
-                }
-            }
-            if (transport == null)
-            {
-                logger.error(
-                    "No valid transport suppied in transport-update from "
-                        + participant.getChatMember().getContactAddress());
-                return;
-            }
-
-            transport.addChildExtension(
-                new RtcpmuxPacketExtension());
-
-            // FIXME: initiator
-            boolean initiator = true;
             colibriConference.updateBundleTransportInfo(
-                initiator,
-                transport,
-                participant.getColibriChannelsInfo());
+                    participant.getBundleTransport(),
+                    participant.getColibriChannelsInfo());
         }
         else
         {
-            Map<String, IceUdpTransportPacketExtension> transportMap
-                = new HashMap<String, IceUdpTransportPacketExtension>();
-
-            for (ContentPacketExtension cpe : contentList)
-            {
-                IceUdpTransportPacketExtension transport
-                    = cpe.getFirstChildOfType(
-                            IceUdpTransportPacketExtension.class);
-                if (transport != null)
-                {
-                    transportMap.put(cpe.getName(), transport);
-                }
-            }
-
-            // FIXME: initiator
-            boolean initiator = true;
             colibriConference.updateTransportInfo(
-                initiator,
-                transportMap,
-                participant.getColibriChannelsInfo());
+                    participant.getTransportMap(),
+                    participant.getColibriChannelsInfo());
         }
     }
 
@@ -1455,15 +1498,17 @@ public class JitsiMeetConference
             return;
         }
 
-        participant.addSSRCsFromContent(contents);
-
-        participant.addSSRCGroupsFromContent(contents);
-
         MediaSSRCMap ssrcsToAdd
-            = MediaSSRCMap.getSSRCsFromContent(contents);
+            = participant.addSSRCsFromContent(contents);
 
         MediaSSRCGroupMap ssrcGroupsToAdd
-            = MediaSSRCGroupMap.getSSRCGroupsForContents(contents);
+            = participant.addSSRCGroupsFromContent(contents);
+
+        if (ssrcsToAdd.isEmpty() && ssrcGroupsToAdd.isEmpty())
+        {
+            logger.warn("Not sending source-add, notification would be empty");
+            return;
+        }
 
         // Updates SSRC Groups on the bridge
         colibriConference.updateSourcesInfo(
@@ -1513,53 +1558,8 @@ public class JitsiMeetConference
         MediaSSRCGroupMap ssrcGroupsToRemove
             = MediaSSRCGroupMap.getSSRCGroupsForContents(contents);
 
-        removeSSRCs(sourceJingleSession, ssrcsToRemove, ssrcGroupsToRemove);
-    }
-
-    public void onDescriptionInfo(JingleSession session,
-                                  List<ContentPacketExtension> contents)
-    {
-        if (session == null)
-        {
-            logger.error("session is null.");
-            return;
-        }
-
-        if (contents == null || contents.isEmpty())
-        {
-            logger.error("contents is null.");
-            return;
-        }
-
-        Participant participant = findParticipantForJingleSession(session);
-        if (participant == null)
-        {
-            logger.error("no peer state for " + session.getAddress());
-            return;
-        }
-
-        Map<String, RtpDescriptionPacketExtension> rtpDescMap
-                = new HashMap<String, RtpDescriptionPacketExtension>();
-
-        for (ContentPacketExtension content : contents)
-        {
-            RtpDescriptionPacketExtension rtpDesc
-                    = content.getFirstChildOfType(
-                    RtpDescriptionPacketExtension.class);
-
-            if (rtpDesc == null)
-            {
-                continue;
-            }
-
-            rtpDescMap.put(content.getName(), rtpDesc);
-        }
-
-        if (!rtpDescMap.isEmpty())
-        {
-            colibriConference.updateRtpDescription(
-                rtpDescMap, participant.getColibriChannelsInfo());
-        }
+        removeSSRCs(
+                sourceJingleSession, ssrcsToRemove, ssrcGroupsToRemove, true);
     }
 
     /**
@@ -1569,10 +1569,13 @@ public class JitsiMeetConference
      *                            being removed.
      * @param ssrcsToRemove the {@link MediaSSRCMap} of SSRCs to be removed from
      *                      the conference.
+     * @param updateChannels tells whether or not SSRC update request should be
+     *                       sent to the bridge.
      */
-    private void removeSSRCs(JingleSession sourceJingleSession,
-                             MediaSSRCMap ssrcsToRemove,
-                             MediaSSRCGroupMap ssrcGroupsToRemove)
+    private void removeSSRCs(JingleSession        sourceJingleSession,
+                             MediaSSRCMap         ssrcsToRemove,
+                             MediaSSRCGroupMap    ssrcGroupsToRemove,
+                             boolean              updateChannels)
     {
         Participant sourcePeer
             = findParticipantForJingleSession(sourceJingleSession);
@@ -1583,17 +1586,36 @@ public class JitsiMeetConference
             return;
         }
 
-        sourcePeer.removeSSRCs(ssrcsToRemove);
+        // Only SSRCs owned by this peer end up in "removed" set
+        MediaSSRCMap removedSSRCs = sourcePeer.removeSSRCs(ssrcsToRemove);
 
-        sourcePeer.removeSSRCGroups(ssrcGroupsToRemove);
+        MediaSSRCGroupMap removedGroups
+            = sourcePeer.removeSSRCGroups(ssrcGroupsToRemove);
+
+        if (removedSSRCs.isEmpty() && removedGroups.isEmpty())
+        {
+            logger.warn(
+                "No ssrcs or groups to be removed from: "
+                    + sourceJingleSession.getAddress());
+            return;
+        }
+
+        // This prevents from removing SSRCs which do not belong to this peer
+        ssrcsToRemove = removedSSRCs;
+        ssrcGroupsToRemove = removedGroups;
 
         // Updates SSRC Groups on the bridge
-        colibriConference.updateSourcesInfo(
-            sourcePeer.getSSRCsCopy(),
-            sourcePeer.getSSRCGroupsCopy(),
-            sourcePeer.getColibriChannelsInfo());
+        if (updateChannels)
+        {
+            colibriConference.updateSourcesInfo(
+                    sourcePeer.getSSRCsCopy(),
+                    sourcePeer.getSSRCGroupsCopy(),
+                    sourcePeer.getColibriChannelsInfo());
+        }
 
-        logger.info("Remove SSRC " + sourceJingleSession.getAddress());
+        logger.info(
+            "Removing " + sourceJingleSession.getAddress()
+                + " SSRCs " + ssrcsToRemove);
 
         for (Participant peer : participants)
         {
@@ -1630,8 +1652,7 @@ public class JitsiMeetConference
      */
     private List<SourcePacketExtension> getAllSSRCs(String media)
     {
-        List<SourcePacketExtension> mediaSSRCs
-            = new ArrayList<SourcePacketExtension>();
+        List<SourcePacketExtension> mediaSSRCs = new ArrayList<>();
 
         for (Participant peer : participants)
         {
@@ -1656,8 +1677,7 @@ public class JitsiMeetConference
      */
     private List<SourceGroupPacketExtension> getAllSSRCGroups(String media)
     {
-        List<SourceGroupPacketExtension> ssrcGroups
-            = new ArrayList<SourceGroupPacketExtension>();
+        List<SourceGroupPacketExtension> ssrcGroups = new ArrayList<>();
 
         for (Participant peer : participants)
         {
@@ -1681,6 +1701,17 @@ public class JitsiMeetConference
     }
 
     /**
+     * Returns global config instance.
+     *
+     * @return instance of <tt>JitsiMeetGlobalConfig</tt> used by this
+     * conference.
+     */
+    JitsiMeetGlobalConfig getGlobalConfig()
+    {
+        return globalConfig;
+    }
+
+    /**
      * Returns the name of conference multi-user chat room.
      */
     public String getRoomName()
@@ -1696,60 +1727,10 @@ public class JitsiMeetConference
         return protocolProviderHandler.getProtocolProvider();
     }
 
-    /**
-     * Attempts to modify conference recording state.
-     *
-     * @param from JID of the participant that wants to modify recording state.
-     * @param token recording security token that will be verified on modify
-     *              attempt.
-     * @param state the new recording state to set.
-     * @param path output recording path(recorder implementation and deployment
-     *             dependent).
-     * @return new recording state(unchanged if modify attempt has failed).
-     */
-    public boolean modifyRecordingState(
-            String from, String token, boolean state, String path)
+    ChatRoomMember findMember(String from)
     {
-        ChatRoomMember member = findMember(from);
-        if (member == null)
-        {
-            logger.error("No member found for address: " + from);
-            return false;
-        }
-        if (ChatRoomMemberRole.MODERATOR.compareTo(member.getRole()) < 0)
-        {
-            logger.info("Recording - request denied, not a moderator: " + from);
-            return false;
-        }
-
-        Recorder recorder = getRecorder();
-        if (recorder == null)
-        {
-            return false;
-        }
-
-        boolean isTokenCorrect
-            = recorder.setRecording(from, token, state, path);
-        if (!isTokenCorrect)
-        {
-            logger.info(
-                "Incorrect recording token received ! Session: "
-                    + chatRoom.getName());
-        }
-
-        return recorder.isRecording();
-    }
-
-    private ChatRoomMember findMember(String from)
-    {
-        for (ChatRoomMember member : chatRoom.getMembers())
-        {
-            if (member.getContactAddress().equals(from))
-            {
-                return member;
-            }
-        }
-        return null;
+        return chatRoom != null ?
+            chatRoom.findChatMember(from) : null;
     }
 
     /**
@@ -1771,16 +1752,6 @@ public class JitsiMeetConference
     {
 
         return roomName + "/" + focusUserName;
-    }
-
-    /**
-     * Gets the full real (as opposed to the room JID in a MUC) JID of the
-     * focus.
-     * @return the full real JID of the focus.
-     */
-    private String getFocusRealJid()
-    {
-        return getXmppProvider().getAccountID().getAccountAddress();
     }
 
     /**
@@ -1829,6 +1800,13 @@ public class JitsiMeetConference
             return false;
         }
 
+        // do not allow unmuting other participants even for the moderator
+        if (!doMute && !fromJid.equals(toBeMutedJid))
+        {
+            logger.warn("Do not allow unmuting other participants!");
+            return false;
+        }
+
         logger.info(
             "Will " + (doMute ? "mute" : "unmute")
                 + " " + toBeMutedJid + " on behalf of " + fromJid);
@@ -1871,6 +1849,56 @@ public class JitsiMeetConference
     public String getId()
     {
         return id;
+    }
+
+    @Override
+    public void handleEvent(Event event)
+    {
+        switch (event.getTopic())
+        {
+        case BridgeEvent.BRIDGE_DOWN:
+            BridgeEvent bridgeEvent = (BridgeEvent) event;
+
+            onBridgeDown(bridgeEvent.getBridgeJid());
+            break;
+        }
+    }
+
+    /**
+     * Handles on bridge down event by shutting down the conference if it's the
+     * one we're using here.
+     */
+    private void onBridgeDown(String bridgeJid)
+    {
+        if (colibriConference != null
+                && bridgeJid.equals(colibriConference.getJitsiVideobridge()))
+        {
+            // We will not send expire channels requests
+            // when the bridge has failed
+            bridgeHasFailed = true;
+
+            stop();
+        }
+    }
+
+    /**
+     * Returns <tt>ChatRoom2</tt> instance for the MUC this instance is
+     * currently in or <tt>null</tt> if it isn't in any.
+     */
+    public ChatRoom2 getChatRoom()
+    {
+        return chatRoom;
+    }
+
+    /**
+     * Returns <tt>JitsiMeetRecording</tt> for this conference.
+     * @return <tt>JitsiMeetRecording</tt> instance for this conference or
+     *         <tt>null</tt> if it's not available yet(should be after we join
+     *         the MUC).
+     */
+    public JitsiMeetRecording getRecording()
+    {
+        return recording;
     }
 
     /**

@@ -39,7 +39,7 @@ public class MockTest
         throws InterruptedException
     {
         MockXmppConnection mockConnection
-            = new MockXmppConnection();
+            = new MockXmppConnectionImpl();
 
         XmppPeer peerA = new XmppPeer("A", mockConnection);
         XmppPeer peerB = new XmppPeer("B", mockConnection);
@@ -105,7 +105,7 @@ public class MockTest
                 "node1",
                 new String[]{ "featureA", "featureB"}));
 
-        List<String> nodes = mockCaps.getItems("root");
+        Set<String> nodes = mockCaps.getItems("root");
         assertEquals(3, nodes.size());
     }
 }

@@ -17,7 +17,14 @@
  */
 package org.jitsi.impl.protocol.xmpp;
 
+import net.java.sip.communicator.impl.protocol.jabber.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.health.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jibri.*;
 import net.java.sip.communicator.service.protocol.*;
+import net.java.sip.communicator.service.protocol.jabber.*;
+
+import org.jitsi.impl.protocol.xmpp.extensions.*;
 
 import org.osgi.framework.*;
 
@@ -33,14 +40,40 @@ public class XmppProtocolActivator
 {
     private ServiceRegistration<?> focusRegistration;
 
+    static BundleContext bundleContext;
+
     @Override
     public void start(BundleContext bundleContext)
         throws Exception
     {
+        XmppProtocolActivator.bundleContext = bundleContext;
+
+        // FIXME: make sure that we're using interoperability layer
+        AbstractSmackInteroperabilityLayer.setImplementationClass(
+            SmackV3InteroperabilityLayer.class);
+
+        // Constructors called to register extension providers
+        new ConferenceIqProvider();
+        // Colibri
+        new ColibriIQProvider();
+        // HealthChecks
+        HealthCheckIQProvider.registerIQProvider();
+        // Jibri IQs
+        AbstractSmackInteroperabilityLayer.getInstance().addIQProvider(
+                JibriIq.ELEMENT_NAME,
+                JibriIq.NAMESPACE,
+                new JibriIqProvider());
+        JibriStatusPacketExt.registerExtensionProvider();
+
+        // Override original Smack Version IQ class
+        AbstractSmackInteroperabilityLayer.getInstance()
+            .addIQProvider(
+                    "query", "jabber:iq:version",
+                    org.jitsi.jicofo.discovery.Version.class);
+
         XmppProviderFactory focusFactory
             = new XmppProviderFactory(
                     bundleContext, ProtocolNames.JABBER);
-
         Hashtable<String, String> hashtable = new Hashtable<String, String>();
 
         // Register XMPP

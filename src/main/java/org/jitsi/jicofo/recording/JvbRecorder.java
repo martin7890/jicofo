@@ -18,6 +18,7 @@
 package org.jitsi.jicofo.recording;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.ColibriConferenceIQ.Recording.*;
 import net.java.sip.communicator.util.*;
 
 import org.jitsi.protocol.xmpp.*;
@@ -48,21 +49,26 @@ public class JvbRecorder
      */
     boolean isRecording;
 
+    private final String roomName;
+
     /**
      * Creates new instance of <tt>JvbRecorder</tt>.
      * @param conferenceId colibri conference ID obtained when allocated
      *                     on the bridge
      * @param videoBridgeComponentJid videobridge component address.
+     * @param roomName the room name.
      * @param xmpp {@link OperationSetDirectSmackXmpp}
      *              for current XMPP connection.
      */
     public JvbRecorder(String conferenceId,
                        String videoBridgeComponentJid,
+                       String roomName,
                        OperationSetDirectSmackXmpp xmpp)
     {
         super(videoBridgeComponentJid, xmpp);
 
         this.conferenceId = conferenceId;
+        this.roomName = roomName;
     }
 
     /**
@@ -79,21 +85,24 @@ public class JvbRecorder
      */
     @Override
     public boolean setRecording(String from, String token,
-                                boolean doRecord, String path)
+                                State doRecord, String path)
     {
         ColibriConferenceIQ toggleRecordingIq = new ColibriConferenceIQ();
 
         toggleRecordingIq.setID(conferenceId);
         toggleRecordingIq.setTo(recorderComponentJid);
         toggleRecordingIq.setType(IQ.Type.SET);
+        toggleRecordingIq.setName(roomName);
 
         toggleRecordingIq.setRecording(
-            new ColibriConferenceIQ.Recording(!isRecording, token));
+            new ColibriConferenceIQ.Recording(
+                !isRecording ? State.ON : State.OFF, token));
 
         Packet reply
             = xmpp.getXmppConnection()
                     .sendPacketAndGetReply(toggleRecordingIq);
-        logger.info("REC reply received: " + reply.toXML());
+        logger.info("REC reply received: "
+            + (reply != null ? reply.toXML() : "timeout"));
         if (reply instanceof ColibriConferenceIQ)
         {
             ColibriConferenceIQ colibriReply = (ColibriConferenceIQ) reply;
@@ -101,7 +110,8 @@ public class JvbRecorder
                 = colibriReply.getRecording();
             if (recording != null)
             {
-                isRecording = recording.getState();
+                isRecording = recording.getState().equals(State.ON)
+                    || recording.getState().equals(State.PENDING);
                 logger.info("REC status: " + conferenceId + ": " + isRecording);
             }
             else

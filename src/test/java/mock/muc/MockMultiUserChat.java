@@ -20,6 +20,8 @@ package mock.muc;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
+import org.jitsi.protocol.xmpp.*;
+import org.jitsi.protocol.xmpp.util.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -31,6 +33,7 @@ import java.util.concurrent.*;
  */
 public class MockMultiUserChat
     extends AbstractChatRoom
+    implements ChatRoom2
 {
     /**
      * The logger
@@ -85,7 +88,8 @@ public class MockMultiUserChat
     public void join()
         throws OperationFailedException
     {
-        joinAs(getParentProvider().getAccountID().getAccountDisplayName());
+        joinAs(getParentProvider().getAccountID()
+            .getAccountPropertyString(ProtocolProviderFactory.DISPLAY_NAME));
     }
 
     @Override
@@ -647,5 +651,13 @@ public class MockMultiUserChat
         return "MockMUC@" + hashCode()
             + "["+ this.roomName + ", "
             + protocolProvider + "]";
+    }
+
+    @Override
+    public XmppChatMember findChatMember(String mucJid)
+    {
+        String nick = MucUtil.extractNickname(mucJid);
+
+        return findMember(nick);
     }
 }

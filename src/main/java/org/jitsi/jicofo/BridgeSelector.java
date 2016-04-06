@@ -20,10 +20,13 @@ package org.jitsi.jicofo;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
 import net.java.sip.communicator.util.Logger;
 
+import org.jitsi.assertions.*;
+import org.jitsi.eventadmin.*;
+import org.jitsi.jicofo.discovery.*;
+import org.jitsi.jicofo.event.*;
 import org.jitsi.protocol.xmpp.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.util.*;
-import org.jitsi.videobridge.stats.*;
 
 import org.jivesoftware.smack.packet.*;
 
@@ -78,7 +81,7 @@ public class BridgeSelector
      * The amount of time we will wait after bridge instance failure before it
      * will get another chance.
      */
-    private long failureResetThreshold;
+    private long failureResetThreshold = DEFAULT_FAILURE_RESET_THRESHOLD;
 
     /**
      * Operation set used to subscribe to PubSub nodes notifications.
@@ -88,8 +91,13 @@ public class BridgeSelector
     /**
      * The map of bridge JID to <tt>BridgeState</tt>.
      */
-    private Map<String, BridgeState> bridges
-        = new HashMap<String, BridgeState>();
+    private final Map<String, BridgeState> bridges = new HashMap<>();
+
+    /**
+     * The <tt>EventAdmin</tt> used by this instance to fire/send
+     * <tt>BridgeEvent</tt>s.
+     */
+    private EventAdmin eventAdmin;
 
     /**
      * Pre-configured JVB used as last chance option even if no bridge has been
@@ -100,7 +108,7 @@ public class BridgeSelector
     /**
      * The map of Pub-Sub nodes to videobridge JIDs.
      */
-    private Map<String, String> pubSubToBridge = new HashMap<String, String>();
+    private final Map<String, String> pubSubToBridge = new HashMap<>();
 
     /**
      * Creates new instance of {@link BridgeSelector}.
@@ -110,34 +118,9 @@ public class BridgeSelector
      */
     public BridgeSelector(OperationSetSubscription subscriptionOpSet)
     {
+        Assert.notNull(subscriptionOpSet, "subscriptionOpSet");
+
         this.subscriptionOpSet = subscriptionOpSet;
-
-        ConfigurationService config = FocusBundleActivator.getConfigService();
-
-        String mappingPropertyValue = config.getString(BRIDGE_TO_PUBSUB_PNAME);
-
-        if (StringUtils.isNullOrEmpty(mappingPropertyValue))
-        {
-            return;
-        }
-
-        String[] pairs = mappingPropertyValue.split(";");
-        for (String pair : pairs)
-        {
-            String[] bridgeAndNode = pair.split(":");
-            String bridge = bridgeAndNode[0];
-            String pubSubNode = bridgeAndNode[1];
-            pubSubToBridge.put(pubSubNode, bridge);
-
-            logger.info("Pub-sub mapping: " + pubSubNode + " -> " + bridge);
-        }
-
-        setFailureResetThreshold(
-            config.getLong( BRIDGE_FAILURE_RESET_THRESHOLD_PNAME,
-                            DEFAULT_FAILURE_RESET_THRESHOLD));
-
-        logger.info(
-            "Bridge failure reset threshold: " + getFailureResetThreshold());
     }
 
     /**
@@ -149,17 +132,30 @@ public class BridgeSelector
      */
     public void addJvbAddress(String bridgeJid)
     {
+        addJvbAddress(bridgeJid, null);
+    }
+
+    /**
+     * Adds next Jitsi Videobridge XMPP address to be observed by this selected
+     * and taken into account in best bridge selection process.
+     *
+     * @param bridgeJid the JID of videobridge to be added to this selector's
+     *                  set of videobridges.
+     * @param version the {@link Version} IQ instance which contains the info
+     *                about JVB version.
+     */
+    synchronized public void addJvbAddress(String bridgeJid, Version version)
+    {
         if (isJvbOnTheList(bridgeJid))
         {
             return;
         }
 
-        logger.info("Added videobridge: " + bridgeJid);
+        logger.info("Added videobridge: " + bridgeJid + " v: " + version);
 
         String pubSubNode = findNodeForBridge(bridgeJid);
         if (pubSubNode != null)
         {
-            // FIXME: retry if node is not available yet
             logger.info(
                 "Subscribing to pub-sub notifications to "
                     + pubSubNode + " for " + bridgeJid);
@@ -167,12 +163,14 @@ public class BridgeSelector
         }
         else
         {
-            logger.warn(
-                "No pub-sub node mapped for " + bridgeJid
-                    + " statistics will not be tracked for this instance.");
+            logger.warn("No pub-sub node mapped for " + bridgeJid);
         }
 
-        bridges.put(bridgeJid, new BridgeState(bridgeJid));
+        BridgeState newBridge = new BridgeState(bridgeJid, version);
+
+        bridges.put(bridgeJid, newBridge);
+
+        notifyBridgeUp(newBridge);
     }
 
     /**
@@ -184,7 +182,7 @@ public class BridgeSelector
      * @return <tt>true</tt> if given JVB XMPP address is already known to this
      * <tt>BridgeSelector</tt>.
      */
-    boolean isJvbOnTheList(String jvbJid)
+    synchronized boolean isJvbOnTheList(String jvbJid)
     {
         return bridges.containsKey(jvbJid);
     }
@@ -196,11 +194,11 @@ public class BridgeSelector
      * @param bridgeJid the JID of videobridge to be removed from this selector's
      *                  set of videobridges.
      */
-    public void removeJvbAddress(String bridgeJid)
+    synchronized public void removeJvbAddress(String bridgeJid)
     {
         logger.info("Removing JVB: " + bridgeJid);
 
-        bridges.remove(bridgeJid);
+        BridgeState bridge = bridges.remove(bridgeJid);
 
         String pubSubNode = findNodeForBridge(bridgeJid);
         if (pubSubNode != null)
@@ -209,8 +207,11 @@ public class BridgeSelector
                 "Removing PubSub subscription to "
                     + pubSubNode + " for " + bridgeJid);
 
-            subscriptionOpSet.unSubscribe(pubSubNode);
+            subscriptionOpSet.unSubscribe(pubSubNode, this);
         }
+
+        if (bridge != null)
+            notifyBridgeDown(bridge);
     }
 
     /**
@@ -219,50 +220,37 @@ public class BridgeSelector
      * allocating channels.
      *
      * @return the JID of least loaded videobridge or <tt>null</tt> if there are
-     *         not any operational bridges currently.
+     *         no operational bridges currently available.
      */
-    public String selectVideobridge()
+    synchronized public String selectVideobridge()
     {
-        List<String> bridges = getPrioritizedBridgesList();
-        return bridges.size() > 0 ? bridges.get(0) : null;
+        List<BridgeState> bridges = getPrioritizedBridgesList();
+        if (bridges.size() == 0)
+            return null;
+
+        return bridges.get(0).isOperational() ? bridges.get(0).jid : null;
     }
 
     /**
      * Returns the list of all known videobridges JIDs ordered by load and
      * *operational* status. Not operational bridges are at the end of the list.
      */
-    public List<String> getPrioritizedBridgesList()
+    private List<BridgeState> getPrioritizedBridgesList()
     {
-        ArrayList<BridgeState> bridgeList
-            = new ArrayList<BridgeState>(bridges.values());
+        ArrayList<BridgeState> bridgeList = new ArrayList<>(bridges.values());
 
         Collections.sort(bridgeList);
 
-        boolean isAnyBridgeUp = false;
-        ArrayList<String> bridgeJidList = new ArrayList<String>();
-        for (BridgeState bridgeState : bridgeList)
+        Iterator<BridgeState> bridgesIter = bridgeList.iterator();
+
+        while (bridgesIter.hasNext())
         {
-            bridgeJidList.add(bridgeState.jid);
-            if (bridgeState.isOperational())
-            {
-                isAnyBridgeUp = true;
-            }
+            BridgeState bridge = bridgesIter.next();
+            if (!bridge.isOperational())
+                bridgesIter.remove();
         }
-        // Check if we have pre-configured bridge to include in the list
-        if (!StringUtils.isNullOrEmpty(preConfiguredBridge)
-            && !bridgeJidList.contains(preConfiguredBridge))
-        {
-            // If no auto-detected bridge is up then put pre-configured up front
-            if (!isAnyBridgeUp)
-            {
-                bridgeJidList.add(0, preConfiguredBridge);
-            }
-            else
-            {
-                bridgeJidList.add(preConfiguredBridge);
-            }
-        }
-        return bridgeJidList;
+
+        return bridgeList;
     }
 
     /**
@@ -273,7 +261,7 @@ public class BridgeSelector
      * @param isWorking <tt>true</tt> if bridge successfully allocated
      *                  the channels which means it is in *operational* state.
      */
-    public void updateBridgeOperationalStatus(String bridgeJid,
+    synchronized public void updateBridgeOperationalStatus(String bridgeJid,
                                               boolean isWorking)
     {
         BridgeState bridge = bridges.get(bridgeJid);
@@ -288,14 +276,14 @@ public class BridgeSelector
     }
 
     /**
-     * Returns videobridge JID for given pub-sub node, but only if it has been
-     * added using {@link #addJvbAddress(String)} method.
+     * Returns videobridge JID for given pub-sub node.
      *
      * @param pubSubNode the pub-sub node name.
      *
-     * @return videobridge JID for given pub-sub node.
+     * @return videobridge JID for given pub-sub node or <tt>null</tt> if no
+     *         mapping found.
      */
-    public String getBridgeForPubSubNode(String pubSubNode)
+    synchronized public String getBridgeForPubSubNode(String pubSubNode)
     {
         BridgeState bridge = findBridgeForNode(pubSubNode);
         return bridge != null ? bridge.jid : null;
@@ -340,12 +328,26 @@ public class BridgeSelector
     }
 
     /**
+     * Method called by {@link org.jitsi.jicofo.ComponentsDiscovery
+     * .ThroughPubSubDiscovery} whenever we receive stats update on shared
+     * PubSub node used to discover bridges.
+     * @param itemId stats item ID. Should be the JID of JVB instance.
+     * @param payload JVB stats payload.
+     */
+    void onSharedNodeUpdate(String itemId, PacketExtension payload)
+    {
+        onSubscriptionUpdate(null, itemId, payload);
+    }
+
+    /**
      * Pub-sub notification processing logic.
      *
      * {@inheritDoc}
      */
     @Override
-    public void onSubscriptionUpdate(String node, PacketExtension payload)
+    synchronized public void onSubscriptionUpdate(String          node,
+                                                  String          itemId,
+                                                  PacketExtension payload)
     {
         if (!(payload instanceof ColibriStatsExtension))
         {
@@ -355,12 +357,24 @@ public class BridgeSelector
             return;
         }
 
-        BridgeState bridgeState = findBridgeForNode(node);
+        BridgeState bridgeState = null;
+        if (node != null)
+        {
+            bridgeState = findBridgeForNode(node);
+        }
+
         if (bridgeState == null)
         {
-            logger.warn(
-                "No bridge registered or missing mapping for node: " + node);
-            return;
+            // Try to figure out bridge by itemId
+            bridgeState = bridges.get(itemId);
+            if (bridgeState == null)
+            {
+                logger.warn(
+                        "Received PubSub update for unknown bridge: "
+                            + itemId + " node: "
+                            + (node == null ? "'shared'" : node));
+                return;
+            }
         }
 
         ColibriStatsExtension stats = (ColibriStatsExtension) payload;
@@ -373,33 +387,56 @@ public class BridgeSelector
 
             ColibriStatsExtension.Stat stat
                 = (ColibriStatsExtension.Stat) child;
-            if (VideobridgeStatistics.CONFERENCES.equals(stat.getName()))
+            if ("conferences".equals(stat.getName()))
             {
-                Object statValue = stat.getValue();
-                if (statValue == null)
-                {
-                    return;
-                }
-                String stringStatValue = String.valueOf(statValue);
-                try
-                {
-                    bridgeState.setConferenceCount(
-                        Integer.parseInt(stringStatValue));
-                }
-                catch(NumberFormatException e)
-                {
-                    logger.error(
-                        "Error parsing conference count stat: "
-                                + stringStatValue);
-                }
+                Integer val = getStatisticIntValue(stat);
+                if(val != null)
+                    bridgeState.setConferenceCount(val);
+            }
+            else if ("videochannels".equals(stat.getName()))
+            {
+                Integer val = getStatisticIntValue(stat);
+                if(val != null)
+                    bridgeState.setVideoChannelCount(val);
+            }
+            else if ("videostreams".equals(stat.getName()))
+            {
+                Integer val = getStatisticIntValue(stat);
+                if(val != null)
+                    bridgeState.setVideoStreamCount(val);
             }
         }
     }
 
     /**
+     * Extracts the statistic integer value from <tt>currentStats</tt> if
+     * available and in correct format.
+     * @param currentStats the current stats
+     */
+    private static Integer getStatisticIntValue(
+        ColibriStatsExtension.Stat currentStats)
+    {
+        Object obj = currentStats.getValue();
+        if (obj == null)
+        {
+            return null;
+        }
+        String str = obj.toString();
+        try
+        {
+            return Integer.valueOf(str);
+        }
+        catch(NumberFormatException e)
+        {
+            logger.error("Error parsing stat item: " + currentStats.toXML());
+        }
+        return null;
+    }
+
+    /**
      * Returns the JID of pre-configured Jitsi Videobridge instance.
      */
-    public String getPreConfiguredBridge()
+    synchronized public String getPreConfiguredBridge()
     {
         return preConfiguredBridge;
     }
@@ -408,9 +445,18 @@ public class BridgeSelector
      * Sets the JID of pre-configured JVB instance which will be used when all
      * auto-detected bridges are down.
      * @param preConfiguredBridge XMPP address of pre-configured JVB component.
+     *
+     * @throws NullPointerException if <tt>preConfiguredBridge</tt> is
+     *         <tt>null</tt>.
      */
-    public void setPreConfiguredBridge(String preConfiguredBridge)
+    synchronized public void setPreConfiguredBridge(String preConfiguredBridge)
     {
+        Assert.notNull(preConfiguredBridge, "preConfiguredBridge");
+
+        logger.info("Configuring default bridge: " + preConfiguredBridge);
+
+        addJvbAddress(preConfiguredBridge);
+
         this.preConfiguredBridge = preConfiguredBridge;
     }
 
@@ -430,10 +476,126 @@ public class BridgeSelector
      * get another chance.
      *
      * @param failureResetThreshold the amount of time in millis.
+     *
+     * @throws IllegalArgumentException if given threshold value is equal or
+     *         less than zero.
      */
     public void setFailureResetThreshold(long failureResetThreshold)
     {
+        if (failureResetThreshold <= 0)
+        {
+            throw new IllegalArgumentException(
+                "Bridge failure reset threshold" +
+                    " must be greater than 0, given value: " +
+                    failureResetThreshold);
+        }
         this.failureResetThreshold = failureResetThreshold;
+    }
+
+    /**
+     * Returns the number of JVBs known to this bridge selector. Not all of them
+     * have to be operational.
+     */
+    public int getKnownBridgesCount()
+    {
+        return bridges.size();
+    }
+
+    /**
+     * Lists all operational JVB instance JIDs currently known to this
+     * <tt>BridgeSelector</tt> instance.
+     *
+     * @return a <tt>List</tt> of <tt>String</tt> with bridges JIDs.
+     */
+    synchronized public List<String> listActiveJVBs()
+    {
+        ArrayList<String> listing = new ArrayList<>(bridges.size());
+        for (BridgeState bridge : bridges.values())
+        {
+            if (bridge.isOperational())
+            {
+                listing.add(bridge.jid);
+            }
+        }
+        return listing;
+    }
+
+    private void notifyBridgeUp(BridgeState bridge)
+    {
+        logger.debug("Propagating new bridge added event: " + bridge.jid);
+
+        eventAdmin.sendEvent(
+            BridgeEvent.createBridgeUp(bridge.jid));
+    }
+
+    private void notifyBridgeDown(BridgeState bridge)
+    {
+        logger.debug("Propagating bridge went down event: " + bridge.jid);
+
+        eventAdmin.sendEvent(
+            BridgeEvent.createBridgeDown(bridge.jid));
+    }
+
+    /**
+     * Initializes this instance by loading the config and obtaining required
+     * service references.
+     */
+    public void init()
+    {
+        ConfigurationService config = FocusBundleActivator.getConfigService();
+
+        String mappingPropertyValue = config.getString(BRIDGE_TO_PUBSUB_PNAME);
+
+        if (!StringUtils.isNullOrEmpty(mappingPropertyValue))
+        {
+            String[] pairs = mappingPropertyValue.split(";");
+            for (String pair : pairs)
+            {
+                String[] bridgeAndNode = pair.split(":");
+                if (bridgeAndNode.length != 2)
+                {
+                    logger.error("Invalid mapping element: " + pair);
+                    continue;
+                }
+
+                String bridge = bridgeAndNode[0];
+                String pubSubNode = bridgeAndNode[1];
+                pubSubToBridge.put(pubSubNode, bridge);
+
+                logger.info("Pub-sub mapping: " + pubSubNode + " -> " + bridge);
+            }
+        }
+
+        setFailureResetThreshold(
+                config.getLong(
+                        BRIDGE_FAILURE_RESET_THRESHOLD_PNAME,
+                        DEFAULT_FAILURE_RESET_THRESHOLD));
+
+        logger.info(
+            "Bridge failure reset threshold: " + getFailureResetThreshold());
+
+        this.eventAdmin = FocusBundleActivator.getEventAdmin();
+        if (eventAdmin == null)
+        {
+            throw new IllegalStateException("EventAdmin service not found");
+        }
+    }
+
+    /**
+     * Finds the version of the videobridge identified by given
+     * <tt>bridgeJid</tt>.
+     *
+     * @param bridgeJid the XMPP address of the videobridge for which we want to
+     *        obtain the version.
+     *
+     * @return {@link Version} instance which holds the details about JVB
+     *         version or <tt>null</tt> if unknown.
+     */
+    synchronized public Version getBridgeVersion(String bridgeJid)
+    {
+        BridgeState bridgeState = bridges.get(bridgeJid);
+
+        return bridgeState != null ? bridgeState.version : null;
     }
 
     /**
@@ -448,9 +610,29 @@ public class BridgeSelector
          */
         private final String jid;
 
-        // If not set we consider it highly occupied,
-        // because no stats we have been fetched so far.
+        /**
+         * If not set we consider it highly occupied,
+         * because no stats we have been fetched so far.
+         */
         private int conferenceCount = Integer.MAX_VALUE;
+
+        /**
+         * If not set we consider it highly occupied,
+         * because no stats we have been fetched so far.
+         */
+        private int videoChannelCount = Integer.MAX_VALUE;
+
+        /**
+         * If not set we consider it highly occupied,
+         * because no stats we have been fetched so far.
+         */
+        private int videoStreamCount = Integer.MAX_VALUE;
+
+        /**
+         * Holds bridge version(if known - not all bridge version are capable of
+         * reporting it).
+         */
+        private final Version version;
 
         /**
          * Stores *operational* status which means it has been successfully used
@@ -466,12 +648,12 @@ public class BridgeSelector
          */
         private long failureTimestamp;
 
-        BridgeState(String bridgeJid)
+        BridgeState(String bridgeJid, Version version)
         {
-            if (StringUtils.isNullOrEmpty(bridgeJid))
-                throw new NullPointerException("bridgeJid");
+            Assert.notNullNorEmpty(bridgeJid, "bridgeJid: " + bridgeJid);
 
             this.jid = bridgeJid;
+            this.version = version;
         }
 
         public void setConferenceCount(int conferenceCount)
@@ -487,6 +669,47 @@ public class BridgeSelector
         public int getConferenceCount()
         {
             return this.conferenceCount;
+        }
+
+        /**
+         * Return the number of channels used.
+         * @return the number of channels used.
+         */
+        public int getVideoChannelCount()
+        {
+            return videoChannelCount;
+        }
+
+        /**
+         * Sets the number of channels used.
+         * @param channelCount the number of channels used.
+         */
+        public void setVideoChannelCount(int channelCount)
+        {
+            this.videoChannelCount = channelCount;
+        }
+
+        /**
+         * Returns the number of streams used.
+         * @return the number of streams used.
+         */
+        public int getVideoStreamCount()
+        {
+            return videoStreamCount;
+        }
+
+        /**
+         * Sets the stream count currently used.
+         * @param streamCount the stream count currently used.
+         */
+        public void setVideoStreamCount(int streamCount)
+        {
+            if (this.videoStreamCount != streamCount)
+            {
+                logger.info(
+                    "Video stream count for: " + jid + ": " + streamCount);
+            }
+            this.videoStreamCount = streamCount;
         }
 
         public void setIsOperational(boolean isOperational)
@@ -543,7 +766,7 @@ public class BridgeSelector
             else if (!meOperational && otherOperational)
                 return 1;
 
-            return conferenceCount - o.conferenceCount;
+            return videoStreamCount - o.videoStreamCount;
         }
     }
 }

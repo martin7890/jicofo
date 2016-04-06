@@ -25,7 +25,6 @@ import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 
 import net.java.sip.communicator.util.*;
-import org.jitsi.jicofo.osgi.*;
 
 import org.jitsi.protocol.xmpp.util.*;
 import org.junit.*;
@@ -34,8 +33,7 @@ import org.junit.runners.*;
 
 import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 /**
  *
@@ -50,15 +48,14 @@ public class AdvertiseSSRCsTest
 
     @BeforeClass
     public static void setUpClass()
-        throws InterruptedException
+        throws Exception
     {
-        OSGi.setUseMockProtocols(true);
-
         osgi.init();
     }
 
     @AfterClass
     public static void tearDownClass()
+        throws Exception
     {
         osgi.shutdown();
     }
@@ -72,8 +69,8 @@ public class AdvertiseSSRCsTest
         String roomName = "testSSRCs@conference.pawel.jitsi.net";
         String serverName = "test-server";
 
-        TestConference testConf = new TestConference();
-        testConf.allocateMockConference(osgi, serverName, roomName);
+        TestConference testConf
+            = TestConference.allocate(osgi.bc, serverName, roomName);
 
         MockProtocolProvider pps
             = testConf.getFocusProtocolProvider();
@@ -127,6 +124,8 @@ public class AdvertiseSSRCsTest
 
         user2.leave();
 
+        assertNotNull(user1.waitForRemoveSource(500));
+
         assertEquals(0, user1.getRemoteSSRCs("audio").size());
         // No groups
         assertEquals(0, user1.getRemoteSSRCGroups("audio").size());
@@ -146,14 +145,14 @@ public class AdvertiseSSRCsTest
     }
 
     @Test
-    public void testOneToOneSSRCGroupsConference()
+    public void testDuplicatedSSRCs()
         throws Exception
     {
         String roomName = "testSSRCs@conference.pawel.jitsi.net";
         String serverName = "test-server";
 
-        TestConference testConf = new TestConference();
-        testConf.allocateMockConference(osgi, serverName, roomName);
+        TestConference testConf
+            = TestConference.allocate(osgi.bc, serverName, roomName);
 
         MockProtocolProvider pps
             = testConf.getFocusProtocolProvider();
@@ -165,6 +164,169 @@ public class AdvertiseSSRCsTest
 
         // Join with all users
         MockParticipant user1 = new MockParticipant("User1");
+        user1.join(chat);
+
+        MockParticipant user2 = new MockParticipant("User2");
+        user2.join(chat);
+
+        // Accept invite with all users
+        // Add 2 duplicated SSRCs to user 1 accept
+        long u1VideoSSRC = MockParticipant.nextSSRC();
+        user1.addLocalVideoSSRC(u1VideoSSRC, null);
+
+        long u1VideoSSRC2 = MockParticipant.nextSSRC();
+        user1.addLocalVideoSSRC(u1VideoSSRC2, null);
+        user1.addLocalVideoSSRC(u1VideoSSRC2, null);
+
+        assertNotNull(user1.acceptInvite(4000));
+
+        assertNotNull(user2.acceptInvite(4000));
+
+        assertNotNull(user1.waitForAddSource(1000));
+        assertNotNull(user2.waitForAddSource(1000));
+
+        // There is 1 + 2 extra we've created here in the test
+        assertEquals(3, user2.getRemoteSSRCs("video").size());
+        // No groups
+        assertEquals(0, user2.getRemoteSSRCGroups("video").size());
+
+        user1.videoSourceAdd(new long[]{ u1VideoSSRC }, false);
+
+        user1.videoSourceAdd(
+            new long[]{
+                u1VideoSSRC, u1VideoSSRC2, u1VideoSSRC,
+                u1VideoSSRC, u1VideoSSRC, u1VideoSSRC2
+            }, false);
+
+        user1.videoSourceAdd(new long[]{ u1VideoSSRC2, u1VideoSSRC }, false);
+
+        // There should be no source-add notifications sent
+        assertEquals(null, user2.waitForAddSource(500));
+
+        assertEquals(1, user2.getRemoteSSRCs("audio").size());
+        // There is 1 + 2 extra we've created here in the test
+        assertEquals(3, user2.getRemoteSSRCs("video").size());
+
+        user2.leave();
+        user1.leave();
+    }
+
+    @Test
+    public void testSSRCLimit()
+        throws Exception
+    {
+        String roomName = "testSSRCs@conference.pawel.jitsi.net";
+        String serverName = "test-server";
+
+        TestConference testConf
+            = TestConference.allocate(osgi.bc, serverName, roomName);
+
+        JitsiMeetGlobalConfig globalConfig
+            = ServiceUtils.getService(osgi.bc, JitsiMeetGlobalConfig.class);
+
+        assertNotNull(globalConfig);
+
+        MockProtocolProvider pps
+            = testConf.getFocusProtocolProvider();
+
+        MockMultiUserChatOpSet mucOpSet = pps.getMockChatOpSet();
+
+        MockMultiUserChat chat
+            = (MockMultiUserChat) mucOpSet.findRoom(roomName);
+
+        // Join with all users
+        MockParticipant user1 = new MockParticipant("User1");
+        user1.join(chat);
+
+        MockParticipant user2 = new MockParticipant("User2");
+        user2.join(chat);
+
+        int maxSSRCs = globalConfig.getMaxSSRCsPerUser();
+
+        // Accept invite with all users
+        // Add many SSRCs to both users
+
+        // Video:
+        // User 1 will fit into the limit on accept, but we'll try to exceed
+        // it later
+        int user1ExtraVideoSSRCCount = maxSSRCs / 2;
+        // User 2 will exceed SSRC limit on accept already
+        int user2ExtraVideoSSRCCount = maxSSRCs + 3;
+        user1.addMultipleVideoSSRCs(user1ExtraVideoSSRCCount);
+        user2.addMultipleVideoSSRCs(user2ExtraVideoSSRCCount);
+
+        // Audio: the opposite scenario
+        int user1ExtraAudioSSRCCount = maxSSRCs + 5;
+        int user2ExtraAudioSSRCCount = maxSSRCs / 2;
+        user1.addMultipleAudioSSRCs(user1ExtraAudioSSRCCount);
+        user2.addMultipleAudioSSRCs(user2ExtraAudioSSRCCount);
+
+        assertNotNull(user1.acceptInvite(4000));
+        assertNotNull(user2.acceptInvite(4000));
+
+        assertNotNull(user1.waitForAddSource(1000));
+        assertNotNull(user2.waitForAddSource(1000));
+
+        // Verify User1's SSRCs seen by User2
+        assertEquals(1 + user1ExtraVideoSSRCCount,
+                     user2.getRemoteSSRCs("video").size());
+        assertEquals(maxSSRCs,
+                     user2.getRemoteSSRCs("audio").size());
+        // Verify User1's SSRCs seen by User1
+        assertEquals(maxSSRCs,
+            user1.getRemoteSSRCs("video").size());
+        assertEquals(1 + user2ExtraAudioSSRCCount,
+            user1.getRemoteSSRCs("audio").size());
+
+        // No groups
+        assertEquals(0, user2.getRemoteSSRCGroups("video").size());
+        assertEquals(0, user1.getRemoteSSRCGroups("video").size());
+        assertEquals(0, user2.getRemoteSSRCGroups("audio").size());
+        assertEquals(0, user1.getRemoteSSRCGroups("audio").size());
+
+        // Now let's test the limits for source-add
+        // User1 will have video SSRCs filled and audio are filled already
+        user1.videoSourceAdd(maxSSRCs / 2);
+        assertNotNull(user2.waitForAddSource(300));
+        assertEquals(maxSSRCs, user2.getRemoteSSRCs("video").size());
+
+        user1.audioSourceAdd(5);
+        assertTrue(null == user2.waitForAddSource(300));
+        assertEquals(maxSSRCs, user2.getRemoteSSRCs("audio").size());
+
+        // User2 has video SSRCs filled already and audio will be filled
+        user2.videoSourceAdd(maxSSRCs / 2);
+        assertNull(user1.waitForAddSource(300));
+        assertEquals(maxSSRCs, user1.getRemoteSSRCs("video").size());
+
+        user2.audioSourceAdd(maxSSRCs / 2);
+        assertNotNull(user1.waitForAddSource(300));
+        assertEquals(maxSSRCs, user1.getRemoteSSRCs("audio").size());
+
+        user2.leave();
+        user1.leave();
+    }
+
+    @Test
+    public void testOneToOneSSRCGroupsConference()
+        throws Exception
+    {
+        String roomName = "testSSRCs@conference.pawel.jitsi.net";
+        String serverName = "test-server";
+
+        TestConference testConf
+            = TestConference.allocate(osgi.bc, serverName, roomName);
+
+        MockProtocolProvider pps
+            = testConf.getFocusProtocolProvider();
+
+        MockMultiUserChatOpSet mucOpSet = pps.getMockChatOpSet();
+
+        MockMultiUserChat chat
+            = (MockMultiUserChat) mucOpSet.findRoom(roomName);
+
+        // Join with all users
+        final MockParticipant user1 = new MockParticipant("User1");
         user1.setUseSsrcGroups(true);
 
         MockParticipant user2 = new MockParticipant("User2");
@@ -196,10 +358,9 @@ public class AdvertiseSSRCsTest
         desktopSSRC[0] = MockParticipant.nextSSRC();
         user2.switchVideoSSRCs(desktopSSRC, false);
         // Wait for update
-        user1.waitForAddSource(5000);
+        user1.waitForAddSource(1000);
+        user1.waitForRemoveSource(1000);
         // Check one SSRC is received and no groups
-        // FIXME: fix tests failing randomly at this point with 3 SSRCs
-        // looks like some issue when sending source-remove
         assertEquals(1, user1.getRemoteSSRCs("video").size());
         assertEquals(0, user1.getRemoteSSRCGroups("video").size());
         // Verify on the bridge
@@ -213,7 +374,8 @@ public class AdvertiseSSRCsTest
         videoSSRCs[1] = MockParticipant.nextSSRC();
         user2.switchVideoSSRCs(videoSSRCs, true);
         // Wait for update
-        user1.waitForAddSource(2000);
+        user1.waitForAddSource(1000);
+        user1.waitForRemoveSource(1000);
         // Check 2 SSRCs are received and 1 group
         assertEquals(2, user1.getRemoteSSRCs("video").size());
         assertEquals(1, user1.getRemoteSSRCGroups("video").size());
@@ -222,6 +384,8 @@ public class AdvertiseSSRCsTest
 
         // User2 - quit
         user2.leave();
+
+        assertNotNull(user1.waitForRemoveSource(1000));
 
         assertEquals(0, user1.getRemoteSSRCs("audio").size());
         // No groups

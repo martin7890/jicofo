@@ -18,12 +18,11 @@
 package org.jitsi.jicofo;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.caps.*;
-import net.java.sip.communicator.util.*;
 
+import org.jitsi.eventadmin.*;
 import org.jitsi.service.configuration.*;
+import org.jitsi.osgi.*;
 
-import org.jitsi.videobridge.eventadmin.*;
-import org.jitsi.videobridge.osgi.*;
 import org.osgi.framework.*;
 
 import java.util.concurrent.*;
@@ -49,7 +48,18 @@ public class FocusBundleActivator
     /**
      * {@link ConfigurationService} instance cached by the activator.
      */
-    private static ConfigurationService configService;
+    private static OSGIServiceRef<ConfigurationService> configServiceRef;
+
+    /**
+     * {@link EventAdmin} service reference.
+     */
+    private static OSGIServiceRef<EventAdmin> eventAdminRef;
+
+    /**
+     * Shared thread pool available through OSGi for other components that do
+     * not like to manage their own pool.
+     */
+    private static ScheduledExecutorService sharedThreadPool;
 
     /**
      * {@link org.jitsi.jicofo.FocusManager} instance created by this activator.
@@ -57,10 +67,14 @@ public class FocusBundleActivator
     private FocusManager focusManager;
 
     /**
-     * Shared thread pool available through OSGi for other components that do
-     * not like to manage their own pool.
+     * <tt>FocusManager</tt> service registration.
      */
-    private static ExecutorService sharedThreadPool;
+    private ServiceRegistration<FocusManager> focusMangerRegistration;
+
+    /**
+     * Global configuration of Jitsi COnference FOcus
+     */
+    private JitsiMeetGlobalConfig globalConfig;
 
     @Override
     public void start(BundleContext context)
@@ -70,25 +84,54 @@ public class FocusBundleActivator
 
         EntityCapsManager.setBundleContext(context);
 
-        sharedThreadPool = Executors.newFixedThreadPool(SHARED_POOL_SIZE);
+        sharedThreadPool = Executors.newScheduledThreadPool(SHARED_POOL_SIZE);
 
-        context.registerService(ExecutorService.class, sharedThreadPool, null);
+        eventAdminRef = new OSGIServiceRef<>(context, EventAdmin.class);
 
-        this.focusManager = new FocusManager();
+        configServiceRef
+            = new OSGIServiceRef<>(context, ConfigurationService.class);
 
-        context.registerService(FocusManager.class, focusManager, null);
+        context.registerService(
+            ExecutorService.class, sharedThreadPool, null);
+        context.registerService(
+            ScheduledExecutorService.class, sharedThreadPool, null);
+
+        globalConfig = JitsiMeetGlobalConfig.startGlobalConfigService(context);
+
+        focusManager = new FocusManager();
+        focusManager.start();
+        focusMangerRegistration
+            = context.registerService(FocusManager.class, focusManager, null);
     }
 
     @Override
     public void stop(BundleContext context)
         throws Exception
     {
+        if (focusMangerRegistration != null)
+        {
+            focusMangerRegistration.unregister();
+            focusMangerRegistration = null;
+        }
+        if (focusManager != null)
+        {
+            focusManager.stop();
+            focusManager = null;
+        }
+
         sharedThreadPool.shutdownNow();
         sharedThreadPool = null;
 
-        configService = null;
+        configServiceRef = null;
+        eventAdminRef = null;
 
         EntityCapsManager.setBundleContext(null);
+
+        if (globalConfig != null)
+        {
+            globalConfig.stopGlobalConfigService();
+            globalConfig = null;
+        }
     }
 
     /**
@@ -96,12 +139,7 @@ public class FocusBundleActivator
      */
     public static ConfigurationService getConfigService()
     {
-        if (configService == null)
-        {
-            configService = ServiceUtils.getService(
-                bundleContext, ConfigurationService.class);
-        }
-        return configService;
+        return configServiceRef.get();
     }
 
     /**
@@ -110,20 +148,14 @@ public class FocusBundleActivator
      */
     public static EventAdmin getEventAdmin()
     {
-        if (bundleContext != null)
-        {
-            return ServiceUtils2.getService(bundleContext,
-                                            EventAdmin.class);
-        }
-        return null;
+        return eventAdminRef.get();
     }
 
     /**
      * Returns shared thread pool service.
      */
-    public static ExecutorService getSharedThreadPool()
+    public static ScheduledExecutorService getSharedThreadPool()
     {
         return sharedThreadPool;
     }
-
 }

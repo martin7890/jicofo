@@ -18,10 +18,13 @@
 package mock.muc;
 
 import mock.xmpp.*;
+
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.globalstatus.*;
-import org.jitsi.jicofo.util.*;
+
+import org.jitsi.jicofo.discovery.*;
 import org.jitsi.protocol.xmpp.*;
+import org.jivesoftware.smack.packet.*;
 
 import java.util.*;
 
@@ -55,10 +58,10 @@ public class MockRoomMember
         MockSetSimpleCapsOpSet mockCaps = (MockSetSimpleCapsOpSet) caps;
 
         List<String> features = DiscoveryUtil.getDefaultParticipantFeatureSet();
-        if (useBundle)
+        if (!useBundle)
         {
-            features.add("urn:ietf:rfc:5761"/* rtcp-mux */);
-            features.add("urn:ietf:rfc:5888"/* bundle */);
+            features.remove(DiscoveryUtil.FEATURE_RTCP_MUX);
+            features.remove(DiscoveryUtil.FEATURE_RTP_BUNDLE);
         }
 
         MockCapsNode myNode
@@ -144,5 +147,19 @@ public class MockRoomMember
     {
         //FIXME: implement in order to test start muted feature
         return 0;
+    }
+
+    @Override
+    public Boolean hasVideoMuted()
+    {
+        // FIXME: not implemented
+        return null;
+    }
+
+    @Override
+    public Presence getPresence()
+    {
+        // FIXME: not implemented
+        return null;
     }
 }

@@ -18,7 +18,6 @@
 package org.jitsi.impl.protocol.xmpp;
 
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
 
 import org.jivesoftware.smack.*;
 
@@ -34,11 +33,6 @@ public class OperationSetMultiUserChatImpl
     extends AbstractOperationSetMultiUserChat
 {
     /**
-     * The logger.
-     */
-    private Logger logger = Logger.getLogger(OperationSetMultiUserChatImpl.class);
-
-    /**
      * Parent protocol provider.
      */
     private final XmppProtocolProvider protocolProvider;
@@ -46,8 +40,8 @@ public class OperationSetMultiUserChatImpl
     /**
      * The map of active chat rooms mapped by their names.
      */
-    private Map<String, ChatRoomImpl> rooms
-            = new HashMap<String, ChatRoomImpl>();
+    private final Map<String, ChatRoomImpl> rooms
+        = new HashMap<String, ChatRoomImpl>();
 
     /**
      * Creates new instance of {@link OperationSetMultiUserChatImpl}.
@@ -97,6 +91,8 @@ public class OperationSetMultiUserChatImpl
                                    Map<String, Object> roomProperties)
         throws OperationFailedException, OperationNotSupportedException
     {
+        roomName = roomName.toLowerCase();
+
         if (rooms.containsKey(roomName))
         {
             throw new OperationFailedException(
@@ -118,6 +114,8 @@ public class OperationSetMultiUserChatImpl
     public ChatRoom findRoom(String roomName)
         throws OperationFailedException, OperationNotSupportedException
     {
+        roomName = roomName.toLowerCase();
+
         ChatRoom room = rooms.get(roomName);
         if (room == null)
         {

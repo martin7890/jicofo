@@ -18,11 +18,13 @@
 package org.jitsi.impl.protocol.xmpp;
 
 import net.java.sip.communicator.impl.protocol.jabber.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.service.protocol.*;
 
 import net.java.sip.communicator.service.protocol.globalstatus.*;
+import net.java.sip.communicator.util.*;
 import org.jitsi.protocol.xmpp.*;
-import org.jitsi.util.*;
+import org.jivesoftware.smack.packet.*;
 import org.jivesoftware.smackx.muc.*;
 
 /**
@@ -34,9 +36,9 @@ public class ChatMemberImpl
     implements XmppChatMember
 {
     /**
-     * The logger.
+     * The logger
      */
-    private final static Logger logger = Logger.getLogger(ChatMemberImpl.class);
+    static final private Logger logger = Logger.getLogger(ChatMemberImpl.class);
 
     /**
      * The MUC nickname used by this member.
@@ -59,7 +61,24 @@ public class ChatMemberImpl
      */
     private final String address;
 
+    /**
+     * Caches real JID of the participant if we're able to see it(not the MUC
+     * address stored in {@link ChatMemberImpl#address}).
+     */
+    private String memberJid = null;
+
+    /**
+     * Stores the last <tt>Presence</tt> processed by this
+     * <tt>ChatMemberImpl</tt>.
+     */
+    private Presence presence;
+
     private ChatRoomMemberRole role;
+
+    /**
+     * Stores video muted status if any.
+     */
+    private Boolean videoMuted;
 
     public ChatMemberImpl(String participant, ChatRoomImpl chatRoom,
         int joinOrderNumber)
@@ -74,6 +93,15 @@ public class ChatMemberImpl
     public ChatRoom getChatRoom()
     {
         return chatRoom;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Presence getPresence()
+    {
+        return presence;
     }
 
     @Override
@@ -146,12 +174,51 @@ public class ChatMemberImpl
     @Override
     public String getJabberID()
     {
-        return chatRoom.getMemberJid(address);
+        if (memberJid == null)
+        {
+            memberJid = chatRoom.getMemberJid(address);
+        }
+        return memberJid;
     }
 
     @Override
     public int getJoinOrderNumber()
     {
         return joinOrderNumber;
+    }
+
+    @Override
+    public Boolean hasVideoMuted()
+    {
+        return videoMuted;
+    }
+
+    /**
+     * Does presence processing.
+     *
+     * @param presence the instance of <tt>Presence</tt> packet extension sent
+     *                 by this chat member.
+     */
+    void processPresence(Presence presence)
+    {
+        this.presence = presence;
+
+        VideoMutedExtension videoMutedExt
+            = (VideoMutedExtension)
+                presence.getExtension(
+                    VideoMutedExtension.ELEMENT_NAME,
+                    VideoMutedExtension.NAMESPACE);
+
+        if (videoMutedExt != null)
+        {
+            Boolean newStatus = videoMutedExt.isVideoMuted();
+            if (newStatus != videoMuted)
+            {
+                logger.debug(
+                    getContactAddress() + " video muted: " + newStatus);
+
+                videoMuted = newStatus;
+            }
+        }
     }
 }

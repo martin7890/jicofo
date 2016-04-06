@@ -24,7 +24,6 @@ import mock.xmpp.pubsub.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
 import net.java.sip.communicator.util.*;
 
-import org.jitsi.jicofo.osgi.*;
 import org.jitsi.videobridge.stats.*;
 
 import org.jivesoftware.smack.packet.*;
@@ -35,9 +34,7 @@ import org.junit.runners.*;
 
 import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * Tests for bridge selection logic.
@@ -59,7 +56,7 @@ public class BridgeSelectorTest
 
     @BeforeClass
     public static void setUpClass()
-        throws InterruptedException
+        throws Exception
     {
         String bridgeMapping
             = jvb1Jid + ":" + jvb1PubSubNode + ";" +
@@ -69,13 +66,12 @@ public class BridgeSelectorTest
         System.setProperty(
             BridgeSelector.BRIDGE_TO_PUBSUB_PNAME, bridgeMapping);
 
-        OSGi.setUseMockProtocols(true);
-
         osgi.init();
     }
 
     @AfterClass
     public static void tearDownClass()
+        throws Exception
     {
         osgi.shutdown();
     }
@@ -153,7 +149,6 @@ public class BridgeSelectorTest
         selector.updateBridgeOperationalStatus(jvb2Jid, false);
 
         assertEquals(jvb3Jid, selector.selectVideobridge());
-        assertEquals(jvb3Jid, selector.getPrioritizedBridgesList().get(0));
 
         // Bridge 1 is up again, but 3 is down instead
         workingBridges.add(jvb1Jid);
@@ -163,7 +158,6 @@ public class BridgeSelectorTest
         selector.updateBridgeOperationalStatus(jvb3Jid, false);
 
         assertEquals(jvb1Jid, selector.selectVideobridge());
-        assertEquals(jvb1Jid, selector.getPrioritizedBridgesList().get(0));
 
         // Reset all bridges - now we'll select based on conference count
         workingBridges.clear();
@@ -177,40 +171,38 @@ public class BridgeSelectorTest
         MockSubscriptionOpSetImpl mockSubscriptions
             = mockProvider.getMockSubscriptionOpSet();
 
+        // When PubSub mapping is used itemId is not important
+        String itemId = "randomNodeForMappingTest";
+
         // Jvb 1 and 3 are occupied by some conferences, 2 is free
         mockSubscriptions.fireSubscriptionNotification(
-            jvb1PubSubNode, createJvbStats(10));
+            jvb1PubSubNode,itemId, createJvbStats(10));
         mockSubscriptions.fireSubscriptionNotification(
-            jvb2PubSubNode, createJvbStats(23));
+            jvb2PubSubNode, itemId, createJvbStats(23));
         mockSubscriptions.fireSubscriptionNotification(
-            jvb3PubSubNode, createJvbStats(0));
+            jvb3PubSubNode, itemId, createJvbStats(0));
 
         assertEquals(jvb3Jid, selector.selectVideobridge());
-        assertEquals(jvb3Jid, selector.getPrioritizedBridgesList().get(0));
 
         // Now Jvb 3 gets occupied the most
         mockSubscriptions.fireSubscriptionNotification(
-            jvb3PubSubNode, createJvbStats(300));
+            jvb3PubSubNode, itemId, createJvbStats(300));
 
         assertEquals(jvb1Jid, selector.selectVideobridge());
-        assertEquals(jvb1Jid, selector.getPrioritizedBridgesList().get(0));
 
         // Jvb 1 is gone
         selector.updateBridgeOperationalStatus(jvb1Jid, false);
 
         assertEquals(jvb2Jid, selector.selectVideobridge());
-        assertEquals(jvb2Jid, selector.getPrioritizedBridgesList().get(0));
 
         // TEST pre-configured bridge
         selector.updateBridgeOperationalStatus(jvb2Jid, false);
         selector.updateBridgeOperationalStatus(jvb3Jid, false);
         // Use pre-configured bridge if all others are down
-        assertEquals(jvbPreConfigured,
-                     selector.getPrioritizedBridgesList().get(0));
-        // Pre-configured bridge is never removed from the list
+        assertEquals(jvbPreConfigured, selector.selectVideobridge());
+        // Pre-configured one is down
         selector.updateBridgeOperationalStatus(jvbPreConfigured, false);
-        assertEquals(jvbPreConfigured,
-                     selector.getPrioritizedBridgesList().get(0));
+        assertEquals(null, selector.selectVideobridge());
 
         // Now bridges are up and select based on conference count
         // with pre-configured bridge
@@ -220,33 +212,41 @@ public class BridgeSelectorTest
         selector.updateBridgeOperationalStatus(jvbPreConfigured, true);
 
         mockSubscriptions.fireSubscriptionNotification(
-                jvbPreConfigured, createJvbStats(1));
+                jvbPreConfigured, itemId, createJvbStats(1));
         mockSubscriptions.fireSubscriptionNotification(
-                jvb1PubSubNode, createJvbStats(0));
+                jvb1PubSubNode, itemId, createJvbStats(0));
         mockSubscriptions.fireSubscriptionNotification(
-                jvb2PubSubNode, createJvbStats(0));
+                jvb2PubSubNode, itemId, createJvbStats(0));
         mockSubscriptions.fireSubscriptionNotification(
-                jvb3PubSubNode, createJvbStats(0));
+                jvb3PubSubNode, itemId, createJvbStats(0));
 
         // Pre-configured one should not be in front
-        assertNotEquals(jvbPreConfigured,
-                selector.getPrioritizedBridgesList().get(0));
+        assertNotEquals(jvbPreConfigured, selector.selectVideobridge());
 
         // JVB 2 least occupied
         mockSubscriptions.fireSubscriptionNotification(
-                jvbPreConfigured, createJvbStats(1));
+                jvbPreConfigured, itemId, createJvbStats(1));
         mockSubscriptions.fireSubscriptionNotification(
-                jvb1PubSubNode, createJvbStats(1));
+                jvb1PubSubNode, itemId, createJvbStats(1));
         mockSubscriptions.fireSubscriptionNotification(
-                jvb2PubSubNode, createJvbStats(0));
+                jvb2PubSubNode, itemId, createJvbStats(0));
         mockSubscriptions.fireSubscriptionNotification(
-                jvb3PubSubNode, createJvbStats(1));
+                jvb3PubSubNode, itemId, createJvbStats(1));
 
-        assertEquals(jvb2Jid,
-                selector.getPrioritizedBridgesList().get(0));
+        assertEquals(jvb2Jid, selector.selectVideobridge());
 
         // FAILURE RESET THRESHOLD
         testFailureResetThreshold(selector, mockSubscriptions);
+
+        // Test drain bridges queue
+        int maxCount = selector.getKnownBridgesCount();
+        while (selector.selectVideobridge() != null)
+        {
+            String bridge = selector.selectVideobridge();
+            selector.updateBridgeOperationalStatus(bridge, false);
+            if (--maxCount < 0)
+                fail("Max count exceeded");
+        }
     }
 
     private void testFailureResetThreshold(
@@ -269,7 +269,9 @@ public class BridgeSelectorTest
 
                 // Test node has 0 load...
                 mockSubscriptions.fireSubscriptionNotification(
-                    pubSubNodes[idx], createJvbStats(isTestNode ? 0 : 100));
+                    pubSubNodes[idx],
+                    "randomItemId",
+                    createJvbStats(isTestNode ? 0 : 100));
 
                 // ... and is not operational
                 selector.updateBridgeOperationalStatus(nodes[idx], !isTestNode);
@@ -281,15 +283,18 @@ public class BridgeSelectorTest
             // Test node should recover
             assertEquals(nodes[testNode], selector.selectVideobridge());
         }
+
+        selector.setFailureResetThreshold(
+            BridgeSelector.DEFAULT_FAILURE_RESET_THRESHOLD);
     }
 
-    PacketExtension createJvbStats(int conferenceCount)
+    PacketExtension createJvbStats(int videoStreamCount)
     {
         ColibriStatsExtension statsExtension = new ColibriStatsExtension();
 
         statsExtension.addStat(
             new ColibriStatsExtension.Stat(
-                VideobridgeStatistics.CONFERENCES, "" + conferenceCount));
+                VideobridgeStatistics.VIDEOSTREAMS, "" + videoStreamCount));
 
         return statsExtension;
     }

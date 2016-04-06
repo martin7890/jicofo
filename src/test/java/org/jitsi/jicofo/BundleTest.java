@@ -26,7 +26,6 @@ import net.java.sip.communicator.impl.protocol.jabber.extensions.jitsimeet.*;
 import net.java.sip.communicator.impl.protocol.jabber.jinglesdp.*;
 
 import net.java.sip.communicator.util.Logger;
-import org.jitsi.jicofo.osgi.*;
 import org.jitsi.util.*;
 
 import org.junit.*;
@@ -53,15 +52,14 @@ public class BundleTest
 
     @BeforeClass
     public static void setUpClass()
-        throws InterruptedException
+        throws Exception
     {
-        OSGi.setUseMockProtocols(true);
-
         osgi.init();
     }
 
     @AfterClass
     public static void tearDownClass()
+        throws Exception
     {
         osgi.shutdown();
     }
@@ -76,8 +74,8 @@ public class BundleTest
         String roomName = "testroom@conference.pawel.jitsi.net";
         String serverName = "test-server";
 
-        TestConference testConference = new TestConference();
-        testConference.allocateMockConference(osgi, serverName, roomName);
+        TestConference testConference
+            = TestConference.allocate(osgi.bc, serverName, roomName);
 
         MockProtocolProvider pps
             = testConference.getFocusProtocolProvider();

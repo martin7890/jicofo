@@ -22,9 +22,6 @@ import mock.muc.*;
 import mock.util.*;
 
 import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
-
-import org.jitsi.jicofo.osgi.*;
 
 import org.junit.*;
 import org.junit.runner.*;
@@ -39,21 +36,18 @@ import static org.junit.Assert.assertTrue;
 @RunWith(JUnit4.class)
 public class RolesTest
 {
-    private final static Logger logger = Logger.getLogger(BundleTest.class);
-
     static OSGiHandler osgi = new OSGiHandler();
 
     @BeforeClass
     public static void setUpClass()
-        throws InterruptedException
+        throws Exception
     {
-        OSGi.setUseMockProtocols(true);
-
         osgi.init();
     }
 
     @AfterClass
     public static void tearDownClass()
+        throws Exception
     {
         osgi.shutdown();
     }
@@ -68,9 +62,8 @@ public class RolesTest
         String roomName = "testroom@conference.pawel.jitsi.net";
         String serverName = "test-server";
 
-        TestConference testConference = new TestConference();
-
-        testConference.allocateMockConference(osgi, serverName, roomName);
+        TestConference testConference
+            = TestConference.allocate(osgi.bc, serverName, roomName);
 
         MockProtocolProvider pps
             = testConference.getFocusProtocolProvider();

@@ -19,10 +19,16 @@ package mock.jvb;
 
 import mock.xmpp.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.health.*;
 import net.java.sip.communicator.util.*;
+
 import org.jitsi.videobridge.*;
 import org.jitsi.videobridge.simulcast.*;
+
+import org.jivesoftware.smack.*;
+import org.jivesoftware.smack.filter.*;
 import org.jivesoftware.smack.packet.*;
+
 import org.osgi.framework.*;
 
 import java.util.*;
@@ -32,31 +38,32 @@ import java.util.*;
  * @author Pawel Domas
  */
 public class MockVideobridge
+    implements PacketFilter, PacketListener
 {
     /**
      * The logger
      */
-    private final static Logger logger
+    private static final Logger logger
         = Logger.getLogger(MockVideobridge.class);
 
     private final MockXmppConnection connection;
 
     private final String bridgeJid;
 
-    private Thread thread;
-
-    private boolean run = true;
-
     private Videobridge bridge;
+
+    private XMPPError.Condition error;
+
+    private boolean returnHealthError = false;
 
     public MockVideobridge(BundleContext bc,
                            MockXmppConnection connection,
                            String bridgeJid)
     {
         this.connection = connection;
+        this.bridgeJid = bridgeJid;
 
-        VideobridgeBundleActivator activator
-            = new VideobridgeBundleActivator();
+        VideobridgeBundleActivator activator = new VideobridgeBundleActivator();
         try
         {
             activator.start(bc);
@@ -67,79 +74,115 @@ public class MockVideobridge
         }
 
         bridge = ServiceUtils.getService(bc, Videobridge.class);
-
-        this.bridgeJid = bridgeJid;
     }
 
     public void start()
     {
-        this.thread = new Thread(new Runnable()
+        connection.addPacketHandler(this, this);
+    }
+
+    @Override
+    public boolean accept(Packet packet)
+    {
+        return bridgeJid.equals(packet.getTo());
+    }
+
+    public void processPacket(Packet p)
+    {
+        if (p instanceof ColibriConferenceIQ
+                || p instanceof HealthCheckIQ)
         {
-            @Override
-            public void run()
+            logger.debug("JVB rcv: " + p.toXML());
+
+            IQ response;
+            if (error == null)
             {
                 try
                 {
-                    jvbLoop();
+                    response = processImpl((IQ) p);
                 }
                 catch (Exception e)
                 {
-                    logger.error(e, e);
+                    response = null;
+                    logger.error("JVB internal error!", e);
                 }
             }
-        });
+            else
+            {
+                response = IQ.createErrorResponse((IQ) p, new XMPPError(error));
+            }
 
-        thread.start();
-    }
+            if (response != null)
+            {
+                response.setTo(p.getFrom());
+                response.setFrom(bridgeJid);
+                if (IQ.Type.RESULT.equals(response.getType()))
+                {
+                    response.setPacketID(p.getPacketID());
+                }
+                connection.sendPacket(response);
 
-    private void jvbLoop()
-        throws Exception
-    {
-        while (run)
+                logger.debug("JVB sent: " + response.toXML());
+            }
+            else
+            {
+                logger.warn("The bridge sent no response to " + p.toXML());
+            }
+        }
+        else if (p != null)
         {
-            Packet p = connection.readNextPacket(bridgeJid, 500);
-            if (p instanceof ColibriConferenceIQ)
-            {
-                logger.debug("JVB rcv: " + p.toXML());
-
-                IQ response
-                    = bridge.handleColibriConferenceIQ(
-                            (ColibriConferenceIQ) p,
-                            Videobridge.OPTION_ALLOW_ANY_FOCUS);
-
-                if (response != null)
-                {
-                    response.setTo(p.getFrom());
-                    response.setFrom(bridgeJid);
-                    if (IQ.Type.RESULT.equals(response.getType()))
-                    {
-                        response.setPacketID(p.getPacketID());
-                    }
-                    connection.sendPacket(response);
-
-                    logger.debug("JVB sent: " + response.toXML());
-                }
-                else
-                {
-                    logger.warn("The bridge sent no response for "
-                                    + p.toString());
-                }
-            }
-            else if (p != null)
-            {
-                logger.error("Discarded " + p.toXML());
-            }
+            logger.error(bridgeJid + " has discarded " + p.toXML());
         }
     }
 
-    public SortedSet<SimulcastLayer> getSimulcastLayers(
-        String confId, String channelId)
+    /**
+     *
+     * @param p <tt>ColibriConferenceIQ</tt> or <tt>HealthCheckIQ</tt> assumed
+     * @return
+     * @throws Exception
+     */
+    private IQ processImpl(IQ p)
+        throws Exception
+    {
+        if (p instanceof ColibriConferenceIQ)
+        {
+            return
+                bridge.handleColibriConferenceIQ(
+                        (ColibriConferenceIQ) p,
+                        Videobridge.OPTION_ALLOW_ANY_FOCUS);
+        }
+        else if (isReturnHealthError())
+        {
+            return
+                IQ.createErrorResponse(
+                        p,
+                        new XMPPError(
+                                XMPPError.Condition.interna_server_error));
+        }
+        else
+        {
+            return bridge.handleHealthCheckIQ((HealthCheckIQ) p);
+        }
+    }
+
+    public List<SimulcastStream> getSimulcastLayers(
+            String confId, String channelId)
     {
         Conference conference = bridge.getConference(confId, null);
         Content videoContent = conference.getOrCreateContent("video");
         VideoChannel videoChannel
             = (VideoChannel) videoContent.getChannel(channelId);
-        return videoChannel.getSimulcastManager().getSimulcastLayers();
+
+        SimulcastStream[] layers
+            = videoChannel
+                    .getTransformEngine()
+                            .getSimulcastEngine()
+                                    .getSimulcastReceiver()
+                                            .getSimulcastStreams();
+        if (layers == null)
+            return new ArrayList<>();
+
+        return Arrays.asList(layers);
     }
 
     public int getChannelsCount()
@@ -177,5 +220,30 @@ public class MockVideobridge
     public String getBridgeJid()
     {
         return bridgeJid;
+    }
+
+    public int getConferenceCount()
+    {
+        return bridge.getConferenceCount();
+    }
+
+    public void setError(XMPPError.Condition error)
+    {
+        this.error = error;
+    }
+
+    public XMPPError.Condition getError()
+    {
+        return error;
+    }
+
+    public boolean isReturnHealthError()
+    {
+        return returnHealthError;
+    }
+
+    public void setReturnHealthError(boolean returnHealthError)
+    {
+        this.returnHealthError = returnHealthError;
     }
 }

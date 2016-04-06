@@ -21,9 +21,6 @@ import mock.*;
 import mock.muc.*;
 import mock.util.*;
 import mock.xmpp.*;
-import net.java.sip.communicator.service.protocol.*;
-import net.java.sip.communicator.util.*;
-import org.jitsi.jicofo.osgi.*;
 import org.junit.*;
 
 import static org.junit.Assert.assertEquals;
@@ -33,22 +30,18 @@ import static org.junit.Assert.assertEquals;
  */
 public class LeakingRoomsTest
 {
-    private static final Logger logger
-            = Logger.getLogger(AdvertiseSSRCsTest.class);
-
     static OSGiHandler osgi = new OSGiHandler();
 
     @BeforeClass
     public static void setUpClass()
-            throws InterruptedException
+        throws Exception
     {
-        OSGi.setUseMockProtocols(true);
-
         osgi.init();
     }
 
     @AfterClass
     public static void tearDownClass()
+        throws Exception
     {
         osgi.shutdown();
     }
@@ -60,8 +53,8 @@ public class LeakingRoomsTest
         String roomName = "testLeaks@conference.pawel.jitsi.net";
         String serverName = "test-server";
 
-        TestConference testConf = new TestConference();
-        testConf.allocateMockConference(osgi, serverName, roomName);
+        TestConference testConf
+            = TestConference.allocate(osgi.bc, serverName, roomName);
 
         MockProtocolProvider pps
                 = testConf.getFocusProtocolProvider();

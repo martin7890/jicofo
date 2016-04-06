@@ -18,6 +18,7 @@
 package org.jitsi.jicofo;
 
 import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
+import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.ColibriConferenceIQ.Recording.*;
 import net.java.sip.communicator.impl.protocol.jabber.extensions.rayo.*;
 import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.util.Logger;
@@ -25,8 +26,9 @@ import net.java.sip.communicator.util.Logger;
 import org.jitsi.impl.protocol.xmpp.extensions.*;
 import org.jitsi.jicofo.log.*;
 import org.jitsi.protocol.xmpp.*;
+import org.jitsi.protocol.xmpp.util.*;
 import org.jitsi.util.*;
-import org.jitsi.videobridge.eventadmin.*;
+import org.jitsi.eventadmin.*;
 import org.jivesoftware.smack.*;
 import org.jivesoftware.smack.filter.*;
 import org.jivesoftware.smack.packet.*;
@@ -173,12 +175,28 @@ public class MeetExtensionsHandler
             return;
         }
 
-        boolean recordingState =
-            conference.modifyRecordingState(
-                colibriIQ.getFrom(),
-                recording.getToken(),
-                recording.getState(),
-                recording.getDirectory());
+        JitsiMeetRecording recordingHandler = conference.getRecording();
+        if (recordingHandler == null)
+        {
+            logger.error(
+                    "JitsiMeetRecording is null for iq: " + colibriIQ.toXML());
+
+            // Internal server error
+            smackXmpp.getXmppConnection().sendPacket(
+                    IQ.createErrorResponse(
+                            colibriIQ,
+                            new XMPPError(
+                                    XMPPError.Condition.interna_server_error)));
+            return;
+        }
+
+        State recordingState =
+            recordingHandler.modifyRecordingState(
+                    colibriIQ.getFrom(),
+                    recording.getToken(),
+                    recording.getState(),
+                    recording.getDirectory(),
+                    colibriIQ.getTo());
 
         ColibriConferenceIQ response = new ColibriConferenceIQ();
 
@@ -186,6 +204,7 @@ public class MeetExtensionsHandler
         response.setPacketID(colibriIQ.getPacketID());
         response.setTo(colibriIQ.getFrom());
         response.setFrom(colibriIQ.getTo());
+        response.setName(colibriIQ.getName());
 
         response.setRecording(
             new ColibriConferenceIQ.Recording(recordingState));
@@ -198,19 +217,9 @@ public class MeetExtensionsHandler
         return packet instanceof MuteIq;
     }
 
-    private String getRoomNameFromMucJid(String mucJid)
-    {
-        int atIndex = mucJid.indexOf("@");
-        int slashIndex = mucJid.indexOf("/");
-        if (atIndex == -1 || slashIndex == -1)
-            return null;
-
-        return mucJid.substring(0, slashIndex);
-    }
-
     private JitsiMeetConference getConferenceForMucJid(String mucJid)
     {
-        String roomName = getRoomNameFromMucJid(mucJid);
+        String roomName = MucUtil.extractRoomNameFromMucJid(mucJid);
         if (roomName == null)
         {
             return null;

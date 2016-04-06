@@ -18,15 +18,8 @@
 package mock.xmpp.colibri;
 
 import mock.*;
-import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
-import net.java.sip.communicator.impl.protocol.jabber.extensions.jingle.*;
-import net.java.sip.communicator.service.protocol.*;
 import org.jitsi.impl.protocol.xmpp.colibri.*;
-import org.jitsi.jicofo.*;
-import org.jitsi.protocol.*;
 import org.jitsi.protocol.xmpp.colibri.*;
-
-import java.util.*;
 
 /**
  *
@@ -46,6 +39,12 @@ public class MockColibriOpSet
         colibriImpl = new OperationSetColibriConferenceImpl();
 
         colibriImpl.initialize(protocolProvider.getMockXmppConnection());
+    }
+
+    public AllocThreadingTestColibriConference createAllocThreadingConf()
+    {
+        return new AllocThreadingTestColibriConference(
+            protocolProvider.getMockXmppConnection());
     }
 
     @Override

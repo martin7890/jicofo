@@ -19,10 +19,13 @@ package org.jitsi.jicofo;
 
 import mock.*;
 import org.jitsi.jicofo.osgi.*;
+import org.jitsi.meet.*;
 import org.osgi.framework.*;
 
 /**
  * Helper class takes encapsulates OSGi specifics operations.
+ *
+ * FIXME there is similar class in JVB
  *
  * @author Pawel Domas
  */
@@ -37,11 +40,13 @@ public class OSGiHandler
 
     private final Object syncRoot = new Object();
 
+    private MockMainMethodActivator mockMain;
+
     public void init()
-        throws InterruptedException
+        throws Exception
     {
-        System.setProperty(FocusManager.HOSTNAME_PNAME, "testserver");
-        System.setProperty(FocusManager.XMPP_DOMAIN_PNAME, "testdomain");
+        System.setProperty(FocusManager.HOSTNAME_PNAME, "test.domain.net");
+        System.setProperty(FocusManager.XMPP_DOMAIN_PNAME, "test.domain.net");
         System.setProperty(FocusManager.FOCUS_USER_DOMAIN_PNAME, "focusdomain");
         System.setProperty(FocusManager.FOCUS_USER_NAME_PNAME, "focus");
 
@@ -54,7 +59,7 @@ public class OSGiHandler
                 bc = bundleContext;
                 synchronized (syncRoot)
                 {
-                    syncRoot.notify();
+                    syncRoot.notifyAll();
                 }
             }
 
@@ -62,11 +67,23 @@ public class OSGiHandler
             public void stop(BundleContext bundleContext)
                 throws Exception
             {
-
+                bc = null;
+                synchronized (syncRoot)
+                {
+                    syncRoot.notifyAll();
+                }
             }
         };
 
+        JicofoBundleConfig jicofoBundles = new JicofoBundleConfig();
+        jicofoBundles.setUseMockProtocols(true);
+        OSGi.setBundleConfig(jicofoBundles);
+
         OSGi.start(bundleActivator);
+
+        mockMain = new MockMainMethodActivator();
+
+        OSGi.start(mockMain);
 
         if (bc == null)
         {
@@ -85,9 +102,20 @@ public class OSGiHandler
     }
 
     public void shutdown()
+        throws Exception
     {
-        OSGi.stop();
-    }
+        if (bc != null)
+        {
+            if (mockMain != null)
+            {
+                OSGi.stop(mockMain);
+            }
 
+            OSGi.stop(bundleActivator);
+        }
+
+        if (bc != null)
+            throw new RuntimeException("Failed to stop OSGI");
+    }
 
 }

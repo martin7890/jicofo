@@ -19,7 +19,7 @@ package org.jitsi.impl.protocol.xmpp;
 
 import net.java.sip.communicator.util.*;
 
-import org.jitsi.jicofo.util.*;
+import org.jitsi.jicofo.discovery.*;
 import org.jitsi.protocol.xmpp.*;
 
 import org.jivesoftware.smack.*;
@@ -46,7 +46,7 @@ public class OpSetSimpleCapsImpl
     }
 
     @Override
-    public List<String> getItems(String node)
+    public Set<String> getItems(String node)
     {
         try
         {

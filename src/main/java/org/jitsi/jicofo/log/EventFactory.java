@@ -17,9 +17,9 @@
  */
 package org.jitsi.jicofo.log;
 
+import org.jitsi.influxdb.*;
 import org.jitsi.util.*;
-import org.jitsi.videobridge.eventadmin.*;
-import org.jitsi.videobridge.influxdb.*;
+import org.jitsi.eventadmin.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
 
@@ -33,7 +33,7 @@ import java.util.*;
  * @author Pawel Domas
  */
 public class EventFactory
-    extends org.jitsi.videobridge.EventFactory
+    extends AbstractEventFactory
 {
     /**
      * The logger instance used by this class.
@@ -129,6 +129,13 @@ public class EventFactory
             = "org/jitsi/jicofo/FOCUS_CREATED";
 
     /**
+     * The name of the topic of a "focus joined MUC room" event which is fired
+     * just after Jicofo joins the MUC room.
+     */
+    public static final String FOCUS_JOINED_ROOM_TOPIC
+        = "org/jitsi/jicofo/FOCUS_JOINED_ROOM";
+
+    /**
      * The name of the topic of a "focus instance destroyed" event.
      */
     public static final String FOCUS_DESTROYED_TOPIC
@@ -159,6 +166,7 @@ public class EventFactory
     /**
      * Creates an Event after parsing <tt>stats</tt> as JSON in the format
      * used in Jitsi Meet.
+     *
      * @param conferenceId the ID of the conference.
      * @param endpointId the ID of the endpoint.
      * @param stats the string representation of
@@ -187,7 +195,6 @@ public class EventFactory
 
         // We specifically add a "time" column
         influxDBEvent.setUseLocalTime(false);
-
 
         return new Event(
                 PEER_CONNECTION_STATS_TOPIC, makeProperties(influxDBEvent));
@@ -250,7 +257,7 @@ public class EventFactory
             for (Object groupName : stats.keySet())
             {
                 JSONArray groupValue = new JSONArray();
-                JSONObject group = ((JSONObject) stats.get(groupName));
+                JSONObject group = (JSONObject) stats.get(groupName);
                 Object type = group.get("type");
 
                 groupValue.add(groupName);
@@ -283,6 +290,25 @@ public class EventFactory
         return values.toArray();
     }
 
+    /**
+     * Creates new <tt>Event</tt> for {@link #FOCUS_JOINED_ROOM_TOPIC}.
+     *
+     * @param roomJid the full address of MUC room.
+     * @param focusId focus instance identifier.
+     *
+     * @return new <tt>Event</tt> for {@link #FOCUS_JOINED_ROOM_TOPIC}.
+     */
+    public static Event focusJoinedRoom(
+            String roomJid,
+            String focusId)
+    {
+        Dictionary properties = new Hashtable(2);
+
+        properties.put(ROOM_JID_KEY, roomJid);
+        properties.put(FOCUS_ID_KEY, focusId);
+
+        return new Event(FOCUS_JOINED_ROOM_TOPIC, properties);
+    }
 
     /**
      * Creates a new "room conference" <tt>Event</tt> which binds a COLIBRI
@@ -463,4 +489,3 @@ public class EventFactory
         return map;
     }
 }
-

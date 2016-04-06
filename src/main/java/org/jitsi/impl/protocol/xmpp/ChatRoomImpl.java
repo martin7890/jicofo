@@ -40,6 +40,7 @@ import java.util.concurrent.*;
  */
 public class ChatRoomImpl
     extends AbstractChatRoom
+    implements ChatRoom2
 {
     /**
      * The logger used by this class.
@@ -84,20 +85,24 @@ public class ChatRoomImpl
      * Member presence listeners.
      */
     private CopyOnWriteArrayList<ChatRoomMemberPresenceListener> listeners
-        = new CopyOnWriteArrayList<ChatRoomMemberPresenceListener>();
+        = new CopyOnWriteArrayList<>();
 
     /**
      * Local user role listeners.
      */
     private CopyOnWriteArrayList<ChatRoomLocalUserRoleListener>
-        localUserRoleListeners
-            = new CopyOnWriteArrayList<ChatRoomLocalUserRoleListener>();
+        localUserRoleListeners = new CopyOnWriteArrayList<>();
 
     /**
      * Nickname to member impl class map.
      */
-    private final Map<String, ChatMemberImpl> members
-        = new HashMap<String, ChatMemberImpl>();
+    private final Map<String, ChatMemberImpl> members = new HashMap<>();
+
+    /**
+     * The list of <tt>ChatRoomMemberPropertyChangeListener</tt>.
+     */
+    private CopyOnWriteArrayList<ChatRoomMemberPropertyChangeListener>
+        propListeners = new CopyOnWriteArrayList<>();
 
     /**
      * Local user role.
@@ -153,7 +158,8 @@ public class ChatRoomImpl
     public void join()
         throws OperationFailedException
     {
-        joinAs(getParentProvider().getAccountID().getAccountDisplayName());
+        joinAs(getParentProvider().getAccountID()
+            .getAccountPropertyString(ProtocolProviderFactory.DISPLAY_NAME));
     }
 
     @Override
@@ -263,12 +269,11 @@ public class ChatRoomImpl
     {
         Connection connection = opSet.getConnection();
         if (connection != null && connection.isConnected())
-        {
             muc.leave();
-        }
 
         // Simulate member left events
-        HashMap<String, ChatMemberImpl> membersCopy;
+        // No need to do this - we dispose whole conference anyway on stop
+        /*HashMap<String, ChatMemberImpl> membersCopy;
         synchronized (members)
         {
             membersCopy
@@ -278,7 +283,7 @@ public class ChatRoomImpl
         for (ChatMemberImpl member : membersCopy.values())
         {
             memberListener.left(member.getContactAddress());
-        }
+        }*/
 
         /*
         FIXME: we do not care about local user left for now
@@ -291,7 +296,9 @@ public class ChatRoomImpl
         if (presenceInterceptor != null)
             muc.removePresenceInterceptor(presenceInterceptor);
         muc.removeParticipantStatusListener(memberListener);
-        muc.removeParticipantListener(participantListener);
+
+        if (connection != null && connection.isConnected())
+            muc.removeParticipantListener(participantListener);
 
         muc.dispose();
 
@@ -477,14 +484,14 @@ public class ChatRoomImpl
     public void addMemberPropertyChangeListener(
         ChatRoomMemberPropertyChangeListener listener)
     {
-
+        propListeners.add(listener);
     }
 
     @Override
     public void removeMemberPropertyChangeListener(
         ChatRoomMemberPropertyChangeListener listener)
     {
-
+        propListeners.remove(listener);
     }
 
     @Override
@@ -497,6 +504,23 @@ public class ChatRoomImpl
     public List<ChatRoomMember> getMembers()
     {
         return new ArrayList<ChatRoomMember>(members.values());
+    }
+
+    @Override
+    public XmppChatMember findChatMember(String mucJid)
+    {
+        ArrayList<ChatMemberImpl> copy
+            = new ArrayList<ChatMemberImpl>(members.values());
+
+        for (ChatMemberImpl member : copy)
+        {
+            if (member.getContactAddress().equals(mucJid))
+            {
+                return member;
+            }
+        }
+
+        return null;
     }
 
     @Override
@@ -783,6 +807,20 @@ public class ChatRoomImpl
         }
     }
 
+    private void notifyMemberPropertyChanged(ChatMemberImpl member)
+    {
+        ChatRoomMemberPropertyChangeEvent event
+            = new ChatRoomMemberPropertyChangeEvent(
+                    member, this,
+                    ChatRoomMemberPropertyChangeEvent.MEMBER_PRESENCE,
+                    null, member.getPresence());
+
+        for (ChatRoomMemberPropertyChangeListener l : propListeners)
+        {
+            l.chatRoomPropertyChanged(event);
+        }
+    }
+
     public Occupant getOccupant(ChatMemberImpl chatMemeber)
     {
         return muc.getOccupant(chatMemeber.getContactAddress());
@@ -888,9 +926,40 @@ public class ChatRoomImpl
                 //logger.info(Thread.currentThread()+"JOINED ROOM: "+participant);
 
                 ChatMemberImpl member = addMember(participant);
-                if (member != null)
+                if (member == null)
                 {
-                    notifyParticipantJoined(member);
+                    logger.error("member is NULL");
+                    return;
+                }
+
+                // Process any cached presence
+                XmppProtocolProvider protocolProvider
+                    = (XmppProtocolProvider) getParentProvider();
+
+                XMPPConnection connection = protocolProvider.getConnection();
+                if (connection == null)
+                {
+                    logger.error("Connection is NULL");
+                    return;
+                }
+
+                // Try to process presence cached in the roster to init fields
+                // like video muted
+                Roster roster = connection.getRoster();
+                Presence cachedPresence
+                    = roster.getPresence(member.getContactAddress());
+                if (cachedPresence != null)
+                {
+                    member.processPresence(cachedPresence);
+                }
+
+                // Trigger participant "joined"
+                notifyParticipantJoined(member);
+
+                // Fire presence event after "joined" event
+                if (cachedPresence != null)
+                {
+                    notifyMemberPropertyChanged(member);
                 }
             }
         }
@@ -1100,9 +1169,9 @@ public class ChatRoomImpl
             }
 
             Presence presence = (Presence) packet;
-            if (logger.isDebugEnabled())
+            if (logger.isTraceEnabled())
             {
-                logger.debug("Presence received " + presence.toXML());
+                logger.trace("Presence received " + presence.toXML());
             }
 
             // Should never happen, but log if something is broken
@@ -1168,8 +1237,20 @@ public class ChatRoomImpl
          */
         private void processOtherPresence(Presence presence)
         {
-            // Not used anymore- but can implement some presence processing
-            // here if needed
+            ChatMemberImpl chatMember
+                = (ChatMemberImpl) findChatMember(presence.getFrom());
+
+            if (chatMember != null)
+            {
+                chatMember.processPresence(presence);
+
+                notifyMemberPropertyChanged(chatMember);
+            }
+            else
+            {
+                logger.warn(
+                    "Presence for not existing member: " + presence.toXML());
+            }
         }
     }
 }

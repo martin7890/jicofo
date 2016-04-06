@@ -21,11 +21,12 @@ import net.java.sip.communicator.service.protocol.*;
 import net.java.sip.communicator.service.protocol.event.*;
 import net.java.sip.communicator.util.*;
 import net.java.sip.communicator.util.Logger;
+import org.jitsi.assertions.*;
 import org.jitsi.jicofo.auth.*;
 import org.jitsi.jicofo.log.*;
 import org.jitsi.protocol.xmpp.*;
 import org.jitsi.util.*;
-import org.jitsi.videobridge.eventadmin.*;
+import org.jitsi.eventadmin.*;
 
 /**
  * Class handled MUC roles and presence for the focus in particular:
@@ -89,14 +90,9 @@ public class ChatRoomRoleAndPresence
     public ChatRoomRoleAndPresence(JitsiMeetConference conference,
                                    ChatRoom chatRoom)
     {
-        if (conference == null)
-        {
-            throw new NullPointerException("conference");
-        }
-        if (chatRoom == null)
-        {
-            throw new NullPointerException("chatRoom");
-        }
+        Assert.notNull(conference, "conference");
+        Assert.notNull(chatRoom, "chatRoom");
+
         this.conference = conference;
         this.chatRoom = chatRoom;
     }

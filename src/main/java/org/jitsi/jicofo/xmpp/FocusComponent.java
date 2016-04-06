@@ -25,8 +25,14 @@ import org.jitsi.impl.protocol.xmpp.extensions.*;
 import org.jitsi.jicofo.*;
 import org.jitsi.jicofo.auth.*;
 import org.jitsi.jicofo.reservation.*;
+import org.jitsi.meet.*;
+import org.jitsi.service.configuration.*;
 import org.jitsi.util.*;
+import org.jitsi.xmpp.component.*;
+import org.jitsi.xmpp.util.*;
+
 import org.jivesoftware.smack.packet.*;
+
 import org.osgi.framework.*;
 import org.xmpp.component.*;
 import org.xmpp.packet.IQ;
@@ -38,7 +44,8 @@ import org.xmpp.packet.IQ;
  * @author Pawel Domas
  */
 public class FocusComponent
-    extends AbstractComponent
+    extends ComponentBase
+    implements BundleActivator
 {
     /**
      * The logger.
@@ -51,12 +58,12 @@ public class FocusComponent
      * which shutdown requests will be accepted.
      */
     public static final String SHUTDOWN_ALLOWED_JID_PNAME
-        = "org.jitsi.focus.shutdown.ALLOWED_JID";
+        = "org.jitsi.jicofo.SHUTDOWN_ALLOWED_JID";
 
     /**
      * The JID from which shutdown request are accepted.
      */
-    private final String shutdownAllowedJid;
+    private String shutdownAllowedJid;
 
     /**
      * Indicates if the focus is anonymous user or authenticated system admin.
@@ -68,15 +75,6 @@ public class FocusComponent
      * recognize real focus of the conference.
      */
     private final String focusAuthJid;
-
-    /**
-     * Optional password for focus user authentication. If authenticated login
-     * is used we expect focus user to have admin privileges, so that it has
-     * explicit moderator rights. Also in this case focus component will always
-     * return 'ready=true' status, so that users don't have to wait for
-     * the focus to create the room. If focus is authenticated and is not
-     * an admin then will refuse to join MUC room.
-     */
 
     /**
      * The manager object that creates and expires
@@ -97,20 +95,28 @@ public class FocusComponent
 
     /**
      * Creates new instance of <tt>FocusComponent</tt>.
+     * @param host the hostname or IP address to which this component will be
+     *             connected.
+     * @param port the port of XMPP server to which this component will connect.
+     * @param domain the name of main XMPP domain on which this component will
+     *               be served.
+     * @param subDomain the name of subdomain on which this component will be
+     *                  available.
+     * @param secret the password used by the component to authenticate with
+     *               XMPP server.
      * @param anonymousFocus indicates if the focus user is anonymous.
      * @param focusAuthJid the JID of authenticated focus user which will be
      *                     advertised to conference participants.
      */
-    public FocusComponent(boolean anonymousFocus, String focusAuthJid)
+    public FocusComponent(String host, int port,
+                          String domain, String subDomain,
+                          String secret,
+                          boolean anonymousFocus, String focusAuthJid)
     {
+        super(host, port, domain, subDomain, secret);
+
         this.isFocusAnonymous = anonymousFocus;
         this.focusAuthJid = focusAuthJid;
-        this.shutdownAllowedJid
-            = FocusBundleActivator.getConfigService()
-                    .getString(SHUTDOWN_ALLOWED_JID_PNAME);
-
-        new ConferenceIqProvider();
-        new ColibriIQProvider();
     }
 
     /**
@@ -118,17 +124,32 @@ public class FocusComponent
      */
     public void init()
     {
-        BundleContext bc = FocusBundleActivator.bundleContext;
+        OSGi.start(this);
+    }
 
-        this.focusManager = ServiceUtils.getService(bc, FocusManager.class);
+    /**
+     * Method will be called by OSGi after {@link #init()} is called.
+     */
+    @Override
+    public void start(BundleContext bc)
+        throws Exception
+    {
+        ConfigurationService configService
+            = ServiceUtils.getService(bc, ConfigurationService.class);
 
-        this.authAuthority
+        loadConfig(configService, "org.jitsi.jicofo");
+
+        if (!isPingTaskStarted())
+            startPingTask();
+
+        this.shutdownAllowedJid
+            = configService.getString(SHUTDOWN_ALLOWED_JID_PNAME);
+
+        authAuthority
             = ServiceUtils.getService(bc, AuthenticationAuthority.class);
-
-        this.reservationSystem
+        focusManager = ServiceUtils.getService(bc, FocusManager.class);
+        reservationSystem
             = ServiceUtils.getService(bc, ReservationSystem.class);
-
-        focusManager.start();
     }
 
     /**
@@ -136,13 +157,19 @@ public class FocusComponent
      */
     public void dispose()
     {
-        focusManager.stop();
+        OSGi.stop(this);
+    }
 
+    /**
+     * Methods will be invoked by OSGi after {@link #dispose()} is called.
+     */
+    @Override
+    public void stop(BundleContext bundleContext)
+        throws Exception
+    {
         authAuthority = null;
-
-        reservationSystem = null;
-
         focusManager = null;
+        reservationSystem = null;
     }
 
     @Override
@@ -248,10 +275,18 @@ public class FocusComponent
 
                 return response != null ? IQUtils.convert(response) : null;
             }
-            else if (smackIq instanceof GracefulShutdownIQ)
+            else if (smackIq instanceof ShutdownIQ)
             {
-                GracefulShutdownIQ gracefulShutdownIQ
-                    = (GracefulShutdownIQ) smackIq;
+                ShutdownIQ gracefulShutdownIQ
+                    = (ShutdownIQ) smackIq;
+
+                if (!gracefulShutdownIQ.isGracefulShutdown())
+                {
+                    return IQUtils.convert(
+                        org.jivesoftware.smack.packet.IQ.createErrorResponse(
+                            smackIq,
+                            new XMPPError(XMPPError.Condition.bad_request)));
+                }
 
                 String from = gracefulShutdownIQ.getFrom();
                 String bareFrom
@@ -345,12 +380,12 @@ public class FocusComponent
                 if (identity == null)
                 {
                     // Error not authorized
-                    return ErrorFactory.createNotAuthorizedError(query);
+                    return ErrorFactory.createNotAuthorizedError(query, null);
                 }
             }
         }
 
-        // Check room reservation ?
+        // Check room reservation?
         if (!roomExists && reservationSystem != null)
         {
             String room = query.getRoom();
@@ -403,8 +438,8 @@ public class FocusComponent
 
         if (!isFocusAnonymous && authAuthority == null)
         {
-            // Focus is authenticated system admin, so we let
-            // them in immediately. Focus will get OWNER anyway.
+            // Focus is authenticated system admin, so we let them in
+            // immediately. Focus will get OWNER anyway.
             ready = true;
         }
 
@@ -418,7 +453,7 @@ public class FocusComponent
         // Config
         response.setFocusJid(focusAuthJid);
 
-        // Authentication module enabled ?
+        // Authentication module enabled?
         response.addProperty(
             new ConferenceIq.Property(
                     "authentication",

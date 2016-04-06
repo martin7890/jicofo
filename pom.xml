@@ -7,8 +7,7 @@
   <parent>
     <groupId>org.jitsi</groupId>
     <artifactId>jitsi-universe</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <relativePath>../jitsi-universe/pom.xml</relativePath>
+    <version>1.0-20160405.235512-16</version>
   </parent>
 
   <artifactId>jicofo</artifactId>
@@ -19,6 +18,7 @@
   <url>https://github.com/jitsi/jicofo</url>
 
   <properties>
+    <assembly.skipAssembly>true</assembly.skipAssembly>
     <jetty.version>8.1.16.v20140903</jetty.version>
   </properties>
 
@@ -72,47 +72,58 @@
     <!-- org.jitsi -->
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>jicoco</artifactId>
+      <version>1.0-20160307.212517-27</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-android-osgi</artifactId>
+      <version>1.0-20150723.002702-1</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-configuration</artifactId>
+      <version>2.9-20150723.181638-1</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-credentialsstorage</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>jitsi-libjitsi</artifactId>
+      <version>2.9-20150723.181643-1</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-netaddr</artifactId>
+      <version>2.9-20150723.181645-1</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol</artifactId>
+      <version>2.9-20151211.202410-3</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-jabber</artifactId>
+      <version>2.9-20160331.193913-13</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-protocol-media</artifactId>
+      <version>2.9-20150723.181646-1</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-ui-service</artifactId>
+      <version>2.9-20150723.181654-1</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-util</artifactId>
+      <version>2.9-20160203.194039-2</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>jitsi-videobridge</artifactId>
+      <artifactId>libjitsi</artifactId>
+      <version>1.0-20160308.153702-107</version>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
@@ -126,16 +137,34 @@
       <groupId>xpp3</groupId>
       <artifactId>xpp3</artifactId>
     </dependency>
+    <!-- runtime -->
+    <dependency>
+      <groupId>rusv</groupId>
+      <artifactId>agafua-syslog</artifactId>
+      <scope>runtime</scope>
+    </dependency>
     <!-- test -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- org.jitsi -->
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>fmj</artifactId>
+      <artifactId>jitsi-videobridge</artifactId>
+      <version>1.0-20160222.224750-84</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>1.9.5</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>2.0.31-beta</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -156,6 +185,7 @@
               <appendAssemblyId>false</appendAssemblyId>
               <descriptor>src/assembly/linux-x64-bin-archive.xml</descriptor>
               <finalName>${project.artifactId}-linux-x64-${project.version}</finalName>
+              <skipAssembly>${assembly.skipAssembly}</skipAssembly>
             </configuration>
           </execution>
           <execution>
@@ -168,6 +198,7 @@
               <appendAssemblyId>false</appendAssemblyId>
               <descriptor>src/assembly/linux-x86-bin-archive.xml</descriptor>
               <finalName>${project.artifactId}-linux-x86-${project.version}</finalName>
+              <skipAssembly>${assembly.skipAssembly}</skipAssembly>
             </configuration>
           </execution>
           <execution>
@@ -180,6 +211,7 @@
               <appendAssemblyId>false</appendAssemblyId>
               <descriptor>src/assembly/macosx-bin-archive.xml</descriptor>
               <finalName>${project.artifactId}-macosx-${project.version}</finalName>
+              <skipAssembly>${assembly.skipAssembly}</skipAssembly>
             </configuration>
           </execution>
           <execution>
@@ -192,6 +224,7 @@
               <appendAssemblyId>false</appendAssemblyId>
               <descriptor>src/assembly/windows-x64-bin-archive.xml</descriptor>
               <finalName>${project.artifactId}-windows-x64-${project.version}</finalName>
+              <skipAssembly>${assembly.skipAssembly}</skipAssembly>
             </configuration>
           </execution>
           <execution>
@@ -204,6 +237,7 @@
               <appendAssemblyId>false</appendAssemblyId>
               <descriptor>src/assembly/windows-x86-bin-archive.xml</descriptor>
               <finalName>${project.artifactId}-windows-x86-${project.version}</finalName>
+              <skipAssembly>${assembly.skipAssembly}</skipAssembly>
             </configuration>
           </execution>
         </executions>

@@ -24,8 +24,8 @@ import net.java.sip.communicator.impl.protocol.jabber.extensions.colibri.*;
 import net.java.sip.communicator.service.shutdown.*;
 
 import org.jitsi.impl.protocol.xmpp.extensions.*;
-import org.jitsi.jicofo.osgi.*;
 import org.jitsi.jicofo.xmpp.*;
+import org.jitsi.xmpp.util.*;
 
 import org.junit.*;
 import org.junit.runner.*;
@@ -50,18 +50,17 @@ public class ShutdownTest
 
     @BeforeClass
     public static void setUpClass()
-        throws InterruptedException
+        throws Exception
     {
         System.setProperty(
             FocusComponent.SHUTDOWN_ALLOWED_JID_PNAME, shutdownJid);
-
-        OSGi.setUseMockProtocols(true);
 
         osgi.init();
     }
 
     @AfterClass
     public static void tearDownClass()
+        throws Exception
     {
         osgi.shutdown();
     }
@@ -82,9 +81,9 @@ public class ShutdownTest
         FocusComponent focusComponent
             = MockMainMethodActivator.getFocusComponent();
 
-        TestConference conf1 = new TestConference();
-
-        conf1.allocateMockConference(osgi, serverName, roomName);
+        TestConference conf1
+            = TestConference.allocate(
+                    osgi.bc, serverName, roomName);
 
         MockParticipant conf1User1 = new MockParticipant("C1U1");
         MockParticipant conf1User2 = new MockParticipant("C1U2");
@@ -96,7 +95,7 @@ public class ShutdownTest
         assertNotNull(conf1User2.acceptInvite(4000));
 
         // Try shutdown from wrong jid
-        GracefulShutdownIQ gracefulShutdownIQ = new GracefulShutdownIQ();
+        ShutdownIQ gracefulShutdownIQ = ShutdownIQ.createGracefulShutdownIQ();
 
         gracefulShutdownIQ.setFrom("randomJid1234");
 

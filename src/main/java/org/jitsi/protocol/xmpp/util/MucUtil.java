@@ -35,10 +35,50 @@ public class MucUtil
      */
     public static String extractName(String roomName)
     {
-        if (roomName.contains("@"))
+        int atIdx = roomName.indexOf("@");
+        if (atIdx != -1)
         {
-            roomName = roomName.substring(0, roomName.indexOf("@"));
+            roomName = roomName.substring(0, atIdx);
         }
         return roomName;
+    }
+
+    /**
+     * Extracts user's nickname from full MUC jid.
+     *
+     * @param mucJid full MUC jid, ex: room1@conference.server.net/nick1
+     *
+     * @return nick part of given MUC jid, ex: nick1
+     *
+     * @throws IllegalArgumentException if given <tt>mucJid</tt> has invalid
+     *         format.
+     */
+    public static String extractNickname(String mucJid)
+    {
+        int slashIdx = mucJid.lastIndexOf("/");
+        if (slashIdx == -1)
+        {
+            throw new IllegalArgumentException("Invalid MUC JID: " + mucJid);
+        }
+        return mucJid.substring(slashIdx + 1);
+    }
+
+    /**
+     * Extracts full room address from MUC participant's address.
+     *
+     * @param mucMemberJid peer's full MUC address:
+     *                     {room_name}@{muc.server.net}/{nick}
+     *
+     * @return full MUC room address address extracted from peer's MUC address:
+     *         {room_name}@{muc.server.net}/{nick}
+     */
+    public static String extractRoomNameFromMucJid(String mucMemberJid)
+    {
+        int atIndex = mucMemberJid.indexOf("@");
+        int slashIndex = mucMemberJid.indexOf("/");
+        if (atIndex == -1 || slashIndex == -1)
+            return null;
+
+        return mucMemberJid.substring(0, slashIndex);
     }
 }
