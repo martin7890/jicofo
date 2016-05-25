@@ -54,13 +54,6 @@ public class JitsiMeetConfig
         = "disableAdaptiveSimulcast";
 
     /**
-     * The name the configuration property used to configure videobridge
-     * instance. It will be used when all auto-detected instances fail(or if we
-     * fail to detect any bridges at all).
-     */
-    public static final String BRIDGE_PNAME = "bridge";
-
-    /**
      * The name of channel last N configuration property. Should be non-negative
      * number. Pass <tt>-1</tt> to disable last N functionality.
      */
@@ -103,6 +96,31 @@ public class JitsiMeetConfig
      */
     public static final String START_VIDEO_MUTED = "startVideoMuted";
 
+    /**
+     * The name of the "disableRtx" property.
+     */
+    public static final String DISABLE_RTX_PNAME = "disableRtx";
+
+    /**
+     * The name of the "minBitrate" property.
+     */
+    public static final String MIN_BITRATE_PNAME = "minBitrate";
+
+    /**
+     * The name of the "startBitrate" property.
+     */
+    public static final String START_BITRATE_PNAME = "startBitrate";
+
+    /**
+     * The name of the "stereo" property.
+     */
+    public static final String STEREO_PNAME = "stereo";
+
+    /**
+     * The default value of the "startBitrate" property.
+     */
+    public static final int START_BITRATE_DEFAULT = 800;
+
     private final Map<String, String> properties;
 
     /**
@@ -124,15 +142,6 @@ public class JitsiMeetConfig
     public String getEnforcedVideobridge()
     {
         return properties.get(ENFORCED_BRIDGE);
-    }
-
-    /**
-     * Returns pre-configured JVB address or <tt>null</tt> if no bridge was
-     * passed in the config.
-     */
-    public String getPreConfiguredVideobridge()
-    {
-        return properties.get(BRIDGE_PNAME);
     }
 
     /**
@@ -180,6 +189,16 @@ public class JitsiMeetConfig
     {
         String mode = properties.get(SIMULCAST_MODE_PNAME);
         return SimulcastMode.fromString(mode);
+    }
+
+    /**
+     * @return {@code true} iff RTX is enabled in this {@link JitsiMeetConfig}.
+     */
+    public boolean isRtxEnabled()
+    {
+        String disableRtxStr = properties.get(DISABLE_RTX_PNAME);
+        return StringUtils.isNullOrEmpty(disableRtxStr)
+            || !Boolean.parseBoolean(disableRtxStr);
     }
 
     /**
@@ -246,5 +265,32 @@ public class JitsiMeetConfig
     public Integer getVideoMuted()
     {
         return getInt(START_VIDEO_MUTED);
+    }
+
+    /**
+     * @return the "min bitrate" which should be included in offers.
+     */
+    public int getMinBitrate()
+    {
+        Integer minBitrate = getInt(MIN_BITRATE_PNAME);
+        return minBitrate == null ? -1 : minBitrate;
+    }
+
+    /**
+     * @return the "start bitrate" which should be included in offers.
+     */
+    public int getStartBitrate()
+    {
+        Integer startBitrate = getInt(START_BITRATE_PNAME);
+        return startBitrate == null ? START_BITRATE_DEFAULT : startBitrate;
+    }
+
+    /**
+     * @return {@code true} iff stereo is enabled in this configuration.
+     */
+    public boolean stereoEnabled()
+    {
+        Boolean stereo = getBoolean(STEREO_PNAME);
+        return stereo != null && stereo;
     }
 }

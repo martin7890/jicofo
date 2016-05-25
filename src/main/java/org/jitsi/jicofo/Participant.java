@@ -291,19 +291,11 @@ public class Participant
     }
 
     /**
-     * Returns the {@link MediaSSRCMap} which contains this peer's media SSRCs.
-     */
-    public MediaSSRCMap getSSRCS()
-    {
-        return ssrcs;
-    }
-
-    /**
-     * Returns shallow copy of this peer's media SSRC map.
+     * Returns deep copy of this peer's media SSRC map.
      */
     public MediaSSRCMap getSSRCsCopy()
     {
-        return ssrcs.copyShallow();
+        return ssrcs.copyDeep();
     }
 
     /**
@@ -429,6 +421,23 @@ public class Participant
     }
 
     /**
+     * Returns <tt>true</tt> if this participant supports 'lip-sync' or
+     * <tt>false</tt> otherwise.
+     */
+    public boolean hasLipSyncSupport()
+    {
+        return supportedFeatures.contains(DiscoveryUtil.FEATURE_LIPSYNC);
+    }
+
+    /**
+     * Returns {@code true} iff this participant supports RTX.
+     */
+    public boolean hasRtxSupport()
+    {
+        return supportedFeatures.contains(DiscoveryUtil.FEATURE_RTX);
+    }
+
+    /**
      * FIXME: we need to remove "is SIP gateway code", but there are still 
      * situations where we need to know whether given peer is a human or not.
      * For example when we close browser window and only SIP gateway stays
@@ -501,6 +510,16 @@ public class Participant
     public boolean isMuted()
     {
         return mutedStatus;
+    }
+
+    /**
+     * Return a <tt>Boolean</tt> which informs about this participant's video
+     * muted status. The <tt>null</tt> value stands for 'unknown'/not signalled,
+     * <tt>true</tt> for muted and <tt>false</tt> means unmuted.
+     */
+    public Boolean isVideoMuted()
+    {
+        return roomMember.hasVideoMuted();
     }
 
     /**
@@ -728,5 +747,14 @@ public class Participant
     public void setDisplayName(String displayName)
     {
         this.displayName = displayName;
+    }
+
+    /**
+     * Returns the MUC JID of this <tt>Participant</tt>.
+     * @return full MUC address e.g. "room1@muc.server.net/nickname"
+     */
+    public String getMucJid()
+    {
+        return roomMember.getContactAddress();
     }
 }
