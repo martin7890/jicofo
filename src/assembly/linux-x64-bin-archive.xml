@@ -14,16 +14,17 @@
       <scope>runtime</scope>
       <useProjectArtifact>false</useProjectArtifact>
       <unpack>false</unpack>
+      <outputFileNameMapping>${artifact.artifactId}.${artifact.extension}</outputFileNameMapping>
     </dependencySet>
   </dependencySets>
-  <fileSets>
-    <fileSet>
-      <directory>${project.build.directory}</directory>
+  <files>
+    <file>
+      <source>target/${artifactId}-${version}.${packaging}</source>
       <outputDirectory>/</outputDirectory>
-      <includes>
-        <include>*.jar</include>
-      </includes>
-    </fileSet>
+      <destName>${artifactId}.${packaging}</destName>
+    </file>
+  </files>
+  <fileSets>
     <fileSet>
       <directory>${project.basedir}/lib</directory>
       <outputDirectory>lib</outputDirectory>

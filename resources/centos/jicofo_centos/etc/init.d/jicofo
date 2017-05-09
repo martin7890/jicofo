@@ -1,0 +1,130 @@
+#! /bin/sh
+#
+# INIT script for Jitsi Conference Focus
+# Version: 1.0  4-Dec-2014  pawel.domas@jitsi.org
+#
+### BEGIN INIT INFO
+# Provides:          jicofo
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:     $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Jitsi conference Focus
+# Description:       Conference focus for Jitsi Meet application.
+### END INIT INFO
+
+. /etc/init.d/functions
+
+# Include jicofo defaults if available
+if [ -f /etc/jitsi/jicofo/config ]; then
+    . /etc/jitsi/jicofo/config
+fi
+# Assign default host if not configured
+if [ ! $JICOFO_HOST ]; then
+    JICOFO_HOST=localhost
+fi
+
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/share/jicofo/jicofo.sh
+DEAMON_DIR=/usr/share/jicofo/
+NAME=jicofo
+USER=jicofo
+PIDPATH=/var/run/jitsi
+PIDFILE="$PIDPATH"/jicofo.pid
+LOGPATH=/var/log/jitsi
+LOGFILE=/var/log/jitsi/jicofo.log
+DESC=jicofo
+DAEMON_OPTS=" --host=$JICOFO_HOST --domain=$JICOFO_HOSTNAME --port=$JICOFO_PORT --secret=$JICOFO_SECRET --subdomain=$JICOFO_SUBDOMAIN --user_domain=$JICOFO_AUTH_DOMAIN --user_name=xrtc_sp00f_f0cus --user_password=$JICOFO_AUTH_PASSWORD $JICOFO_OPTS &"
+
+test -x $DAEMON || exit 0
+
+set -e
+
+if [ ! -d "$PIDPATH" ]; then
+    mkdir "$PIDPATH";
+    chown jicofo:jitsi "$PIDPATH";
+    chmod 775 "$PIDPATH"
+fi
+
+if [ -d "$LOGPATH" ]; then
+    rm -rf "$LOGFILE".*.lck
+    rm -rf "$LOGFILE".[0-9].*
+fi
+
+stop() {
+    if [ -f $PIDFILE ]; then
+        PID=$(cat $PIDFILE)
+    fi
+    echo -n "Stopping $NAME: "
+    if [ $PID ]; then
+        kill $PID || true
+        rm $PIDFILE || true
+        echo "$NAME stopped."
+    else
+        echo "$NAME doesn't seem to be running."
+    fi
+}
+
+start() {
+    if [ -f $PIDFILE ]; then
+        echo "$NAME seems to be already running, we found pidfile $PIDFILE."
+        exit 1
+    fi
+    echo -n "Starting $NAME: "
+    if daemon --pidfile $PIDFILE --user $USER $DAEMON $DAEMON_OPTS; then
+        echo 0
+    else
+        echo 1
+    fi
+    sleep .5
+    PID_VALUE=$(ps -eo pid,command | grep '/usr/share/jicofo' | grep -v grep | awk '{print $1}')
+    if [ $PID_VALUE ]; then
+       su - $USER -c "echo $PID_VALUE" > $PIDFILE
+    fi
+}
+
+status() {
+    printf "%-50s" "Checking $NAME..."
+    if [ -f $PIDFILE ]; then
+        PID=`cat $PIDFILE`
+        if [ -z "`ps axf | grep ${PID} | grep -v grep`" ]; then
+            printf "%s\n" "Process dead but pidfile exists"
+        else
+            echo "Running"
+        fi
+    else
+        printf "%s\n" "Service not running"
+    fi
+}
+
+case "$1" in
+  start)
+    start
+  ;;
+  stop)
+    stop
+  ;;
+  restart)
+    stop
+    start
+  ;;
+  forcereload)
+    echo "Force stop/start Jicofo" "jicofo"
+    stop
+    if [ -f $PIDFILE ]; then
+      rm -f $PIDFILE
+    fi
+    start
+  ;;
+  status)
+    status
+  ;;
+  *)
+    N=/etc/init.d/$NAME
+    echo "Usage: $N {start|stop|restart|forcereload}" >&2
+    exit 1
+  ;;
+esac
+
+exit 0

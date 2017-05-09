@@ -1,0 +1,11 @@
+#JItsi Conference Focus settings
+JICOFO_HOST=localhost
+JICOFO_HOSTNAME=example.com
+JICOFO_SECRET=Xtjn@I1#
+JICOFO_PORT=5347
+JICOFO_SUBDOMAIN=focus
+JICOFO_AUTH_DOMAIN=auth.example
+JICOFO_AUTH_USER=xrtc_sp00f_f0cus
+JICOFO_AUTH_PASSWORD=xrtc_sp00f_f0cus
+JICOFO_OPTS=""
+
